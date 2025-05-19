@@ -1,0 +1,17 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UIDemo/Resources/CurrencyDisplay.uss?fileID=7433441132597879392&amp;guid=6ceec58ce4794e64b89323db09fcee0c&amp;type=3#CurrencyDisplay" />
+    <ui:VisualElement class="currency-display">
+        <ui:Label name="coins-label" text="COINS:" class="currency-display__label">
+            <Bindings>
+                <UnityEngine.Localization.LocalizedString property="text" table="GUID:3057408180711984a9b18dd8d7029bfb" entry="Id(2192346619904)" />
+            </Bindings>
+        </ui:Label>
+        <ui:Label name="coins-value" text="0" class="currency-display__currency currency-display__currency--coins" />
+        <ui:Label name="gems-label" text="GEMS:" class="currency-display__label">
+            <Bindings>
+                <UnityEngine.Localization.LocalizedString property="text" table="GUID:3057408180711984a9b18dd8d7029bfb" entry="Id(2275305758720)" />
+            </Bindings>
+        </ui:Label>
+        <ui:Label name="gems-value" text="0" class="currency-display__currency currency-display__currency--gems" />
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,102 @@
+:root {
+    /* Premium Button Colors */
+    --premium-button-color-default: rgb(245, 205, 61);
+    --premium-button-color-hover: rgb(231, 215, 148);
+    --premium-button-color-pressed: rgb(245, 205, 61); /* Matches default for pressed state feedback */
+    --premium-button-color-disabled: rgb(170, 170, 170);
+    --premium-button-text-color-default: rgb(45, 33, 0);
+    --premium-button-text-color-disabled: rgb(102, 102, 102);
+
+    /* Premium Button Shadow Colors */
+    --premium-button-shadow-color-default: rgb(199, 119, 0);
+    --premium-button-shadow-color-hover: rgb(224, 136, 3);
+    --premium-button-shadow-color-pressed: rgb(102, 102, 102);
+    --premium-button-shadow-color-disabled: rgb(102, 102, 102);
+
+    /* Premium Button Shadow Opacity */
+    --premium-button-shadow-opacity-default: 0.3;
+    --premium-button-shadow-opacity-pressed-disabled: 0.2;
+}
+
+/* Container for the premium button (used for positioning shadow relative to button) */
+.premium-button-container {
+    width: 100%;
+    height: 49px;
+    position: relative;
+}
+
+/* Styles for the premium button's shadow element */
+.premium-button-shadow {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px 8px 16px 16px;
+}
+
+/* Default shadow state */
+.shadow--default {
+    background-color: var(--premium-button-shadow-color-default);
+    opacity: var(--premium-button-shadow-opacity-default);
+    translate: 0 4px; /* Vertical offset for shadow */
+}
+/* Hover shadow state */
+.shadow--hover {
+    background-color: var(--premium-button-shadow-color-hover);
+    opacity: var(--premium-button-shadow-opacity-default);
+    translate: 0 4px;
+}
+/* Pressed shadow state */
+.shadow--pressed {
+    background-color: var(--premium-button-shadow-color-pressed);
+    opacity: var(--premium-button-shadow-opacity-pressed-disabled);
+    translate: 0 2px; /* Reduced offset when pressed */
+}
+/* Disabled shadow state */
+.shadow--disabled {
+    background-color: var(--premium-button-shadow-color-disabled);
+    opacity: var(--premium-button-shadow-opacity-pressed-disabled);
+    translate: 0 4px;
+}
+
+/* Base styles for the premium button itself */
+.premium-button {
+    width: 100%;
+    height: 49px;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    
+    /* Text styling */
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    font-size: 16px;
+    letter-spacing: 1px;
+    color: var(--premium-button-text-color-default);
+    
+    /* Button appearance */
+    background-color: var(--premium-button-color-default);
+    border-width: 0;
+    border-radius: 8px 8px 16px 16px;
+    
+    /* Transitions for smooth visual feedback */
+    transition-duration: 0.2s;
+    transition-property: background-color, translate;
+}
+
+/* Hover state for the premium button */
+.premium-button:hover {
+    background-color: var(--premium-button-color-hover);
+}
+
+/* Active/Pressed state for the premium button */
+.premium-button:active {
+    translate: 0 2px; /* Matches pressed shadow offset */
+    background-color: var(--premium-button-color-pressed);
+}
+
+/* Disabled state for the premium button */
+.premium-button:disabled {
+    color: var(--premium-button-text-color-disabled);
+    background-color: var(--premium-button-color-disabled);
+    opacity: 0.8; /* Reduced opacity when disabled */
+}

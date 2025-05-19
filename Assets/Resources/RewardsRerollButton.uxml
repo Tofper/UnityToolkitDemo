@@ -1,0 +1,13 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UIDemo/Resources/RewardsRerollButton.uss?fileID=7433441132597879392&amp;guid=86cf32a710bf9c84c98a5da1126aaf22&amp;type=3#RewardsRerollButton" />
+    <ui:VisualElement name="rewards-reroll" class="rewards-reroll">
+        <ui:VisualElement name="DiceWrapper" class="rewards-reroll__dice-wrapper">
+            <ui:Label name="DiceIcon" text="🎲" emoji-fallback-support="false" class="rewards-reroll__dice-icon" />
+        </ui:VisualElement>
+        <ui:Label text="FRED" name="Label" class="rewards-reroll__label">
+            <Bindings>
+                <UnityEngine.Localization.LocalizedString property="text" table="GUID:3057408180711984a9b18dd8d7029bfb" entry="Id(2306100338688)" />
+            </Bindings>
+        </ui:Label>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,72 @@
+:root {
+    --reroll-button-text-color: rgb(34, 34, 34);
+    --reroll-button-background-color-default: rgb(122, 157, 123);
+    --reroll-button-background-color-pressed: rgb(90, 109, 143);
+    --reroll-button-border-color-default: rgb(62, 86, 65);
+    --reroll-button-border-color-pressed: rgb(90, 109, 143);
+    --reroll-button-border-color-focus: rgb(0, 123, 255);
+    --reroll-button-border-color-hover: rgb(90, 109, 143);
+    -unity-font-definition: url("project://database/Assets/UI%20Toolkit/UnityThemes/UnityDefaultRuntimeTheme.tss?fileID=2230732570650464555&guid=71855c787a9042f44b3502ca30354d6f&type=3#NotInter-Regular");
+    -unity-font-style: normal;
+}
+
+.rewards-reroll {
+    flex-direction: row;
+    padding-left: 0;
+    padding-right: 0;
+    font-size: 18px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: var(--reroll-button-text-color);
+    background-color: var(--reroll-button-background-color-default);
+    border-width: 2px;
+    border-color: var(--reroll-button-border-color-default);
+    border-radius: 8px;
+    cursor: pointer;
+    padding-top: 0;
+    padding-bottom: 0;
+    justify-content: center;
+    align-items: center;
+    transition-property: border-color;
+    transition-duration: 0.15s;
+}
+
+.unity-button {
+    padding: 0;
+    border-width: 0;
+    border-radius: 0;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: none;
+}
+
+.rewards-reroll:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.rewards-reroll__label {
+}
+
+.rewards-reroll__dice-wrapper {
+    width: 18px;
+    height: 18px;
+    margin-bottom: 2px;
+    align-self: center;
+    -unity-font-definition: url("project://database/Assets/UIDemo/Fonts/NotoColorEmoji_WindowsCompatible%20Color.asset?fileID=11400000&guid=04e4fc488cbdb6e40b92a7cc3c7297b6&type=2#NotoColorEmoji_WindowsCompatible Color");
+}
+
+.rewards-reroll__dice-icon {
+    -unity-text-align: middle-center;
+}
+
+.rewards-reroll.pressed {
+    background-color: var(--reroll-button-background-color-pressed);
+}
+
+.rewards-reroll:hover {
+    border-color: var(--reroll-button-border-color-hover);
+}
+
+.rewards-reroll:focus {
+    border-color: var(--reroll-button-border-color-focus);
+}

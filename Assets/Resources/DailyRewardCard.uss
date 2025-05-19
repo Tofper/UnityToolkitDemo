@@ -1,0 +1,371 @@
+:root {
+    /* Daily Reward Card Colors */
+    --card-border-color-default: #666666;
+    --card-border-color-current: #FFD700; /* Gold */
+    --card-background-color-inner: #2a2a2a;
+    --card-glow-color-default: rgba(255, 255, 255, 0.05);
+    --card-glow-color-gems: rgba(255, 0, 255, 0.08); /* Magenta */
+    --card-glow-color-tokens: rgba(0, 255, 255, 0.08); /* Cyan */
+    --card-darkening-color: rgba(40, 40, 40, 0.55);
+    --card-bevel-highlight-color: rgba(255, 255, 255, 0.4);
+    --card-bevel-shadow-color: rgba(34, 34, 34, 0.8);
+
+    /* Card Header Colors */
+    --card-header-background-color-default: #444;
+    --card-header-background-color-locked: #333;
+    --card-header-background-color-claimed: #3a5a3a; /* Greenish */
+    --card-header-day-text-color-default: #ffffff;
+    --card-header-day-text-color-locked: #9b916c; /* Desaturated Yellow */
+    --card-header-day-text-color-claimed: #a8e6a8; /* Light Green */
+
+    /* Reward Colors */
+    --reward-background-color: rgba(255, 255, 255, 0.08);
+    --reward-shadow-color: black;
+    --reward-gradient-color-default: #FFD700; /* Gold */
+    --reward-gradient-color-locked: #9b916c; /* Desaturated Yellow */
+    --reward-gradient-color-gems: #ff00ff; /* Magenta */
+    --reward-gradient-color-tokens: #00ffff; /* Cyan */
+    --reward-amount-color-locked: #9b916c; /* Desaturated Yellow */
+    --reward-amount-color-gems: #ff00ff; /* Magenta */
+    --reward-amount-color-tokens: #00ffff; /* Cyan */
+    --reward-amount-color-coins: #FFD700; /* Gold */
+}
+
+/* Base styles for the daily reward card container */
+.card {
+    width: 120px;
+    height: 320px;
+    margin: 24px; /* Spacing between cards */
+    padding: 0;
+    background-color: transparent;
+    transition-property: opacity, translate, scale;
+    transition-duration: 0.5s;
+    transition-timing-function: ease-in-out;
+}
+
+/* Starting state for the reveal animation */
+.card--revealed {
+    opacity: 0; /* Start invisible */
+    translate: 0px 60px; /* Start below final position */
+    scale: 0.85; /* Start smaller */
+}
+
+/* Final state for the reveal animation (after animation) */
+.card--settle {
+    opacity: 1; /* Fully visible */
+    translate: 0px 0px; /* Final settled position */
+    scale: 1; /* Final settled scale */
+}
+
+/* Reroll animation: flip/fade out */
+.card--reroll-out {
+    transition-property: opacity, translate, scale;
+    transition-duration: 0.25s;
+    transition-timing-function: ease-in;
+    opacity: 0; /* Fade out */
+    translate: 60px 0px; /* Slide out horizontally (example) */
+    scale: 0.85; /* Shrink slightly */
+}
+
+/* Reroll animation: flip/fade in */
+.card--reroll-in {
+    transition-property: opacity, translate, scale;
+    transition-duration: 0.25s;
+    transition-timing-function: ease-out;
+    opacity: 1; /* Fade in */
+    translate: 0px 0px; /* Slide in to final position */
+    scale: 1.05; /* Slight overshoot for pop effect */
+}
+
+/* Styles for the card--locked state (disable pointer events) */
+.card--locked {
+}
+
+/* Styles for the main card border element */
+.card__border {
+    width: 100%;
+    height: 100%;
+    padding: 4px;
+    background-color: #444444; /* Dark grey background */
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: var(--card-border-color-default);
+}
+
+/* Styles for the card glow effect element */
+.card__glow {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: var(--card-glow-color-default);
+    border-radius: 16px;
+    transition-property: opacity, scale;
+    transition-duration: 0.15s; /* Duration for one half of the pop */
+    transition-timing-function: ease-out;
+}
+
+/* Glow color specifically for gems reward */
+.card__glow--gems {
+    background-color: var(--card-glow-color-gems);
+}
+
+/* Glow color specifically for tokens reward */
+.card__glow--tokens {
+    background-color: var(--card-glow-color-tokens);
+}
+
+/* Styles for the current day card */
+.card--current {
+}
+
+/* Border color for the current day card */
+.card--current .card__border {
+    border-color: var(--card-border-color-current);
+}
+
+/* Styles for darkening overlays within the card */
+.card__bottom-darkening,
+.card__inner-darkening {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 90%;
+    background-color: var(--card-darkening-color);
+    border-radius: 16px;
+}
+
+/* Styles for highlight and shadow bevels */
+.card__bevel-highlight,
+.card__bevel-highlight-inner,
+.card__bevel-shadow {
+    position: absolute;
+    border-radius: 16px;
+    opacity: 0.4;
+}
+
+/* Outer bevel highlight */
+.card__bevel-highlight {
+    border-width: 1.5px;
+    border-color: var(--card-bevel-highlight-color);
+}
+
+/* Inner bevel highlight */
+.card__bevel-highlight-inner {
+    border-width: 3px;
+    border-color: var(--card-bevel-highlight-color);
+    margin: 4px; /* Inset from the outer border */
+}
+
+/* Bevel shadow at the bottom */
+.card__bevel-shadow {
+    opacity: 0.3;
+    border-bottom-width: 1.5px;
+    border-bottom-color: var(--card-bevel-shadow-color);
+}
+
+/* Styles for the inner content area of the card */
+.card__inner {
+    position: relative; /* For absolute positioning of children */
+    width: 100%;
+    height: 100%;
+    background-color: var(--card-background-color-inner);
+    border-radius: 12px;
+}
+
+/* Styles for the card header area */
+.card-header {
+    margin: 2px;
+    padding: 8px 4px;
+    background-color: var(--card-header-background-color-default);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    -unity-text-align: middle-center;
+}
+
+/* Header background color for locked state */
+.card-header--locked {
+    background-color: var(--card-header-background-color-locked);
+    opacity: 0.8;
+}
+
+/* Header background color for claimed state */
+.card-header--claimed {
+    background-color: var(--card-header-background-color-claimed);
+}
+
+/* Styles for the day number text in the header */
+.card-header__day {
+    font-size: 14px;
+    -unity-font-style: bold; /* Extra bold */
+    letter-spacing: 1px;
+    color: var(--card-header-day-text-color-default);
+    -unity-text-align: middle-center;
+    width: 100%;
+}
+
+/* Day text color for locked state */
+.card-header__day--locked {
+    color: var(--card-header-day-text-color-locked);
+    opacity: 0.7;
+}
+
+/* Day text color for claimed state */
+.card-header__day--claimed {
+    color: var(--card-header-day-text-color-claimed);
+}
+
+/* Container for the main reward content */
+.card__content-container {
+    padding: 8px 0 0 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 160px;
+    position: relative;
+    display: flex;
+    -unity-text-align: middle-center;
+}
+
+/* Styles for the reward display area */
+.reward {
+    width: 100px;
+    height: 60px;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--reward-background-color);
+    border-radius: 10px;
+    -unity-text-align: middle-center;
+    padding: 8px 0;
+}
+
+/* Styles for the reward shadow text (if used for outline effect) */
+.reward__shadow {
+    position: absolute;
+    color: var(--reward-shadow-color);
+    font-size: 24px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+/* Styles for the reward gradient text (often used for reward type name) */
+.reward__gradient {
+    position: relative; /* For z-ordering */
+    font-size: 24px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: var(--reward-gradient-color-default);
+    width: 100%;
+}
+
+/* Text color for locked state */
+.reward__gradient--locked {
+    color: var(--reward-gradient-color-locked);
+    opacity: 0.6;
+}
+
+/* Text color for gems reward type */
+.reward__gradient--gems {
+    color: var(--reward-gradient-color-gems);
+}
+
+/* Text color for tokens reward type */
+.reward__gradient--tokens {
+    color: var(--reward-gradient-color-tokens);
+}
+
+/* Styles for the reward highlight element (currently hidden) */
+.reward__highlight {
+    display: none;
+    /* If intended for use, add relevant styles */
+}
+
+/* Styles for the reward amount text */
+.reward__amount {
+    margin-bottom: 4px; /* Space below amount */
+    font-size: 20px;
+    -unity-font-style: bold; /* Extra bold */
+    letter-spacing: 1px;
+    -unity-text-align: middle-center;
+    width: 100%;
+}
+
+/* Reward amount color for locked state */
+.reward__amount--locked {
+    color: var(--reward-amount-color-locked);
+    opacity: 0.7;
+}
+
+/* Reward amount color for gems reward type */
+.reward__amount--gems {
+    color: var(--reward-amount-color-gems);
+}
+
+/* Reward amount color for tokens reward type */
+.reward__amount--tokens {
+    color: var(--reward-amount-color-tokens);
+}
+
+/* Reward amount color for tokens reward type */
+.reward__amount--coins {
+    color: var(--reward-amount-color-coins);
+}
+
+/* Styles for the claim button container within the card */
+.card__button-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px; /* Inner padding */
+}
+
+/* Styles for the reward icon label (if separate from gradient text) */
+.reward__icon-label {
+    position: absolute; /* Position over the reward area */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    font-size: 48px; /* Large size for icon */
+    -unity-text-align: middle-center;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Glow pop animation */
+.card__glow--pop {
+    opacity: 0.3;
+    scale: 1.1;
+}
+
+.icon {
+    margin-top: 8px;
+    color: #FFD700;
+}
+
+.icon--locked {
+    color: #9b916c;
+    opacity: 0.7;
+}
+
+.icon--gems {
+    color: #ff00ff;
+}
+
+.icon--tokens {
+    color: #00ffff;
+}
+
+.card__divider {
+    position: absolute;
+    bottom: 58px;
+    width: 80px;
+    height: 1px;
+    background-color: #888888;
+    opacity: 0.5;
+}

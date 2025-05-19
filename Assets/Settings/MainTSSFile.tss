@@ -1,0 +1,9 @@
+@import url("unity-theme://default");
+
+:root {
+    --color-1:rgb(255, 0, 38);
+}
+
+.all-display {
+    font-size: 118px;
+}

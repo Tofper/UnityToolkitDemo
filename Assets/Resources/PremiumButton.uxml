@@ -1,0 +1,11 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UIDemo/Resources/PremiumButton.uss?fileID=7433441132597879392&amp;guid=23919dac679110e4fb74ec3bdab92ac6&amp;type=3#PremiumButton" />
+    <ui:VisualElement name="premium-button-container" class="premium-button-container">
+        <ui:VisualElement name="premium-button-shadow" class="premium-button-shadow" />
+        <ui:Button name="premium-button" text="CLAIM" class="premium-button">
+            <Bindings>
+                <UnityEngine.Localization.LocalizedString property="text" table="GUID:3057408180711984a9b18dd8d7029bfb" entry="Id(2392507195392)" />
+            </Bindings>
+        </ui:Button>
+    </ui:VisualElement>
+</ui:UXML>

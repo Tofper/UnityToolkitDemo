@@ -1,0 +1,29 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uidemo="Scripts.UI.Components" editor-extension-mode="False">
+    <Style src="project://database/Assets/Resources/DailyRewardsScreen.uss?fileID=7433441132597879392&amp;guid=a7c4988a6a755764abf958c07d909482&amp;type=3#DailyRewardsScreen" />
+    <ui:VisualElement class="daily-rewards-screen">
+        <ui:VisualElement class="daily-rewards-screen__currency-display">
+            <uidemo:CurrencyDisplayControl name="CurrencyDisplay" />
+        </ui:VisualElement>
+        <ui:VisualElement class="daily-rewards-screen__content">
+            <ui:VisualElement class="daily-rewards-screen__title-wrapper">
+                <ui:Label name="TitleMain" class="daily-rewards-screen__title-main">
+                    <Bindings>
+                        <UnityEngine.Localization.LocalizedString property="text" table="GUID:3057408180711984a9b18dd8d7029bfb" entry="Id(30203879424)" />
+                    </Bindings>
+                </ui:Label>
+                <ui:Label name="TitleAccent" emoji-fallback-support="true" class="daily-rewards-screen__title-accent">
+                    <Bindings>
+                        <UnityEngine.Localization.LocalizedString property="text" table="GUID:3057408180711984a9b18dd8d7029bfb" entry="Id(599031193600)" />
+                    </Bindings>
+                </ui:Label>
+                <ui:VisualElement class="daily-rewards-screen__title-underline" />
+            </ui:VisualElement>
+            <ui:VisualElement name="CardsRow" class="daily-rewards-screen__cards-row" />
+            <ui:VisualElement name="CardsShadowRow" class="daily-rewards-screen__cards-shadow-row" />
+            <ui:VisualElement class="daily-rewards-screen__reroll-info">
+                <ui:Label name="RerollInfoText" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <uidemo:RewardsRerollButton name="RerollButton" class="daily-rewards-screen__reroll-button" />
+    </ui:VisualElement>
+</ui:UXML>

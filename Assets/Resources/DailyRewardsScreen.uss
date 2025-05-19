@@ -1,0 +1,116 @@
+:root {
+    /* Daily Rewards Screen Colors */
+    --daily-rewards-background-color: #282a36;
+    --daily-rewards-title-main-color: var(--color-1);
+    --daily-rewards-title-accent-color: #eebbc3;
+    --daily-rewards-title-underline-color: #eebbc3;
+    --daily-rewards-cards-shadow-color: #232946;
+    --daily-rewards-reroll-info-color: #b8c1ec;
+    --daily-rewards-reroll-button-background-color: #eebbc3;
+    --daily-rewards-reroll-button-text-color: #232946;
+}
+
+/* Base styles for the daily rewards screen container */
+.daily-rewards-screen {
+    flex-direction: column; /* Arrange children vertically */
+    align-items: center; /* Center children horizontally */
+    justify-content: flex-start; /* Align children to the top */
+    padding: 24px; /* Inner spacing */
+    width: 100%;
+    height: 100%;
+}
+
+/* Styles for the currency display element within the screen */
+.daily-rewards-screen__currency-display {
+    align-self: flex-end; /* Align to the right */
+    margin-bottom: 16px; /* Space below the element */
+}
+
+/* Styles for the background element of the screen */
+.daily-rewards-screen__background {
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0; /* Cover the entire parent */
+    background-color: var(--daily-rewards-background-color); /* Use variable for background color */
+}
+
+/* Styles for the main content container within the screen */
+.daily-rewards-screen__content {
+    flex-direction: column; /* Arrange children vertically */
+    align-items: center; /* Center children horizontally */
+    width: 100%;
+}
+
+/* Styles for the title wrapper, containing the main title and accent */
+.daily-rewards-screen__title-wrapper {
+    font-size: 42px;
+    -unity-font-style: bold;
+    flex-direction: row; /* Arrange children horizontally */
+    align-items: baseline; /* Align text baselines */
+    margin-bottom: 8px; /* Space below the title */
+}
+
+/* Styles for the main part of the screen title */
+.daily-rewards-screen__title-main {
+    color: var(--daily-rewards-title-main-color); /* Use variable for color */
+}
+
+/* Styles for the accent part of the screen title */
+.daily-rewards-screen__title-accent {
+    color: var(--daily-rewards-title-accent-color); /* Use variable for color */
+    margin-left: 4px; /* Space between main and accent title */
+}
+
+/* Styles for the underline element of the screen title */
+.daily-rewards-screen__title-underline {
+    height: 3px;
+    background-color: var(--daily-rewards-title-underline-color); /* Use variable for color */
+    border-radius: 2px;
+    position: absolute; /* Position relative to the title wrapper */
+    bottom: 0;
+    left: 10px;
+    right: 10px;
+}
+
+/* Styles for the row containing the daily reward cards */
+.daily-rewards-screen__cards-row {
+    flex-direction: row; /* Arrange cards horizontally */
+    justify-content: center; /* Center cards horizontally */
+    margin: 16px 0 8px 0; /* Spacing above and below the row */
+}
+
+/* Styles for the row containing the card shadows */
+.daily-rewards-screen__cards-shadow-row {
+    flex-direction: row; /* Arrange shadows horizontally */
+    justify-content: center; /* Center shadows horizontally */
+    margin-bottom: 16px; /* Space below the shadow row */
+}
+
+/* Styles for individual card shadow elements */
+.daily-rewards-screen__card-shadow {
+    width: 72px; /* Width of the shadow */
+    height: 8px; /* Height of the shadow */
+    background-color: var(--daily-rewards-cards-shadow-color); /* Use variable for color */
+    opacity: 0.3;
+    border-radius: 4px;
+    margin: 0 8px; /* Spacing between shadows */
+}
+
+/* Styles for the reroll info text */
+.daily-rewards-screen__reroll-info {
+    margin-bottom: 12px; /* Space below the text */
+    color: var(--daily-rewards-reroll-info-color); /* Use variable for color */
+    font-size: 16px;
+}
+
+/* Styles for the reroll button */
+.daily-rewards-screen__reroll-button {
+    align-self: center; /* Center the button horizontally */
+    min-width: 120px;
+    padding: 12px 24px; /* Inner spacing */
+    background-color: var(--daily-rewards-reroll-button-background-color); /* Use variable for background */
+    color: var(--daily-rewards-reroll-button-text-color); /* Use variable for text color */
+    font-size: 18px;
+    -unity-font-style: bold;
+    border-radius: 8px;
+    margin-top: 12px; /* Space above the button */
+}

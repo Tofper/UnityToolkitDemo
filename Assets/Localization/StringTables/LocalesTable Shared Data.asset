@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: LocalesTable Shared Data
+  m_EditorClassIdentifier: 
+  m_TableCollectionName: LocalesTable
+  m_TableCollectionNameGuidString: 3057408180711984a9b18dd8d7029bfb
+  m_Entries:
+  - m_Id: 30203879424
+    m_Key: daily-header
+    m_Metadata:
+      m_Items: []
+  - m_Id: 599031193600
+    m_Key: 'rewards-header
+
+'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2192346619904
+    m_Key: coins-header
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2275305758720
+    m_Key: 'gems-header
+
+'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2306100338688
+    m_Key: reroll-button-label
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2392507195392
+    m_Key: claim-button-text
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2557527891968
+    m_Key: rerolls-count-used
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2694316728320
+    m_Key: rerolls-count-remain
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2797874094080
+    m_Key: card-state-locked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2888185847808
+    m_Key: day-label
+    m_Metadata:
+      m_Items: []
+  - m_Id: 31343040438272
+    m_Key: rerolls-count-empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 307676945489920
+    m_Key: claim-button-claimed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 333393259307008
+    m_Key: reward-type-coins
+    m_Metadata:
+      m_Items: []
+  - m_Id: 333444899577856
+    m_Key: reward-type-tokens
+    m_Metadata:
+      m_Items: []
+  - m_Id: 333509454110720
+    m_Key: reward-type-gems
+    m_Metadata:
+      m_Items: []
+  - m_Id: 333544715624448
+    m_Key: reward-type-xp
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 2015450299523399869
+  references:
+    version: 2
+    RefIds:
+    - rid: 2015450299523399869
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1747570310540
