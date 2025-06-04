@@ -21,7 +21,11 @@
             <ui:VisualElement name="CardsRow" class="daily-rewards-screen__cards-row" />
             <ui:VisualElement name="CardsShadowRow" class="daily-rewards-screen__cards-shadow-row" />
             <ui:VisualElement class="daily-rewards-screen__reroll-info">
-                <ui:Label name="RerollInfoText" />
+                <ui:Label name="RerollInfoText" enabled="false" emoji-fallback-support="false" style="height: 30px; width: 195px;">
+                    <Bindings>
+                        <ui:DataBinding property="text" data-source-path="FredText" data-source-type="Scripts.Data.DailyRewardsViewModel, Assembly-CSharp" binding-mode="ToTarget" />
+                    </Bindings>
+                </ui:Label>
             </ui:VisualElement>
         </ui:VisualElement>
         <uidemo:RewardsRerollButton name="RerollButton" class="daily-rewards-screen__reroll-button" />

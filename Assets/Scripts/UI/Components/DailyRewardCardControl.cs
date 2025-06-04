@@ -1,6 +1,7 @@
 using System;
 using Scripts.Data;
 using Scripts.Utilities;
+using Unity.Properties;
 using UnityEngine;
 using UnityEngine.Localization.Settings;
 using UnityEngine.UIElements;
@@ -13,6 +14,7 @@ namespace Scripts.UI.Components
     [UxmlElement]
     public partial class DailyRewardCardControl : VisualElement
     {
+        #region Constants
         // Resource Paths
         private const string CARD_UXML_PATH = "DailyRewardCard";
         private const string CARD_USS_PATH = "DailyRewardCard";
@@ -23,7 +25,11 @@ namespace Scripts.UI.Components
         private const long REVEAL_BASE_DELAY_MS = 1280;
         private const long REVEAL_CARD_DELAY_MS = 100;
         private const long GLOW_POP_DURATION_MS = 250;
+        private const string BINDING_CALLBACK = "__bindingCallback";
+        private const string BINDING_CALLBACK_REWARD_CHANGE = "__bindingRewardChange";
+        #endregion
 
+        #region UI Elements
         private VisualElement _card;
         private VisualElement _cardGlow;
         private VisualElement _cardHeader;
@@ -33,19 +39,19 @@ namespace Scripts.UI.Components
         private Label _iconLabel; // Will display emoji
 
         private PremiumButtonControl _claimButton;
+        #endregion
 
-        private int _day;
-        private int _rewardAmountValue;
-        private bool _isCurrentDay;
-        private bool _isClaimed;
+        #region State
+        private LocalizedStringDatabase _stringDatabase = LocalizationSettings.StringDatabase;
         private bool _initialized = false;
-        private ERewardType _rewardType;
-        private ECardType _cardType;
+        private CardData _cardData;
+        #endregion
 
-        // Scheduled items for animations
+        #region Animation Schedules
         private IVisualElementScheduledItem _rerollOutSchedule;
         private IVisualElementScheduledItem _rerollInSchedule;
         private IVisualElementScheduledItem _revealSchedule;
+        #endregion
 
         /// <summary>
         /// Event triggered when the claim button is clicked.
@@ -81,8 +87,22 @@ namespace Scripts.UI.Components
                 Debug.LogWarning($"{nameof(DailyRewardCardControl)}: Could not load StyleSheet at '{CARD_USS_PATH}'. Ensure it is in a Resources folder.");
             }
 
+            RegisterCallback<AttachToPanelEvent>(OnAttachToPanel);
+        }
+
+        private void OnAttachToPanel(AttachToPanelEvent evt)
+        {
             InitializeElements();
             RegisterCallbacks();
+            SetupBindings();
+        }
+
+        private void OnDetachFromPanel(DetachFromPanelEvent evt)
+        {
+            UnregisterCallbacks();
+            StopAllAnimations();
+            ClearElementsBindings();
+            ClearData();
         }
 
         /// <summary>
@@ -129,21 +149,8 @@ namespace Scripts.UI.Components
         /// </summary>
         private void RegisterCallbacks()
         {
-            if (_claimButton != null)
-            {
-                _claimButton.RegisterCallback<ClickEvent>(OnClaimButtonClicked);
-            }
+            _claimButton?.RegisterCallback<ClickEvent>(OnClaimButtonClicked);
             RegisterCallback<DetachFromPanelEvent>(OnDetachFromPanel);
-        }
-
-        /// <summary>
-        /// Unregisters event callbacks and stops ongoing animations when the element is detached from the panel.
-        /// </summary>
-        /// <param name="e">The detach event data.</param>
-        private void OnDetachFromPanel(DetachFromPanelEvent e)
-        {
-            UnregisterCallbacks();
-            StopAllAnimations(); // Ensure scheduled animations are stopped
         }
 
         /// <summary>
@@ -151,10 +158,7 @@ namespace Scripts.UI.Components
         /// </summary>
         private void UnregisterCallbacks()
         {
-            if (_claimButton != null)
-            {
-                _claimButton.UnregisterCallback<ClickEvent>(OnClaimButtonClicked);
-            }
+            _claimButton?.UnregisterCallback<ClickEvent>(OnClaimButtonClicked);
             UnregisterCallback<DetachFromPanelEvent>(OnDetachFromPanel);
         }
 
@@ -166,13 +170,13 @@ namespace Scripts.UI.Components
         /// <param name="evt">The click event data.</param>
         private void OnClaimButtonClicked(ClickEvent evt)
         {
-            if (_cardType != ECardType.Locked && !_isClaimed)
+            if (_cardData != null && _cardData.type != ECardType.Locked && !_cardData.claimed)
             {
-                OnClaimEvent?.Invoke(_day);
+                OnClaimEvent?.Invoke(_cardData.day);
             }
             else
             {
-                Debug.LogWarning($"{nameof(DailyRewardCardControl)}: Claim button clicked for day {_day} but card is locked or already claimed (Locked: {_cardType == ECardType.Locked}, Claimed: {_isClaimed}). Claim ignored.");
+                Debug.LogWarning($"{nameof(DailyRewardCardControl)}: Claim button clicked but card is locked or already claimed (Locked: {_cardData.type == ECardType.Locked}, Claimed: {_cardData.claimed}). Claim ignored.");
             }
         }
 
@@ -182,176 +186,203 @@ namespace Scripts.UI.Components
         /// Logs the state of the card when data is set.
         /// </summary>
         /// <param name="cardData">The data for the daily reward card.</param>
-        /// <param name="isCurrentDay">Indicates if this card represents the current day's reward.</param>
-        public void SetData(CardData cardData, bool isCurrentDay = false)
+        public void SetData(CardData cardData)
         {
-            bool rewardUpdated = _rewardType != cardData.reward.rewardType || _rewardAmountValue != cardData.reward.rewardAmount;
-            _day = cardData.day;
-            _cardType = cardData.type;
-            _rewardType = cardData.reward.rewardType;
-            _rewardAmountValue = cardData.reward.rewardAmount;
-            _isCurrentDay = isCurrentDay;
-            _isClaimed = cardData.claimed;
+            dataSource = _cardData = cardData;
+
             if (!_initialized)
             {
-                Debug.Log($"[{nameof(DailyRewardCardControl)}] Initializing card for day {_day}");
-                UpdateVisuals();
+                Debug.Log($"[{nameof(DailyRewardCardControl)}] Initializing card for day {_cardData.day}");
                 // Initial reveal animation
-                Reveal(_day); // Pass day for staggered animation
+                Reveal(_cardData.day); // Pass day for staggered animation
                 _initialized = true;
             }
-            else if (rewardUpdated)
-            {
-                PlayRerollAnimation(); // Animation reads updated data
-            }
-            else
-            {
-                UpdateVisuals();
-            }
         }
 
-        /// <summary>
-        /// Plays the reroll animation sequence for the card.
-        /// </summary>
-        private void PlayRerollAnimation()
+        private void SetupRewardUpdateCallback()
         {
-            // Stop any ongoing animations first
-            StopAllAnimations();
-
-            // Start reroll out animation
-            _card.AddToClassList(UISelectors.DailyRewardCard.CARD_REROLL_OUT_CLASS);
-            _rerollOutSchedule = _card.schedule.Execute(() =>
+            var rewardUpdateBinding = new MultiDependencyBinding
             {
-                _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_REROLL_OUT_CLASS);
-                _card.AddToClassList(UISelectors.DailyRewardCard.CARD_REROLL_IN_CLASS);
-                UpdateVisuals(); // Update visuals while card is "flipped"
-                _rerollInSchedule = _card.schedule.Execute(() =>
+                dependencyPaths = new[] { "reward.rewardType", "reward.rewardAmount" }
+            };
+            rewardUpdateBinding.AddCallback<ERewardType, int>((rewardType, rewardAmount) =>
+            {
+                if (_initialized)
                 {
-                    _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_REROLL_IN_CLASS);
-                    _card.AddToClassList(UISelectors.DailyRewardCard.CARD_SETTLE_CLASS);
-                    var settleSchedule = _card.schedule.Execute(() => _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_SETTLE_CLASS));
-                    settleSchedule.ExecuteLater(SETTLE_DELAY_MS);
-                });
-                _rerollInSchedule.ExecuteLater(REROLL_HALF_DURATION_MS);
+                    PlayRerollAnimation();
+                }
             });
-            _rerollOutSchedule.ExecuteLater(REROLL_HALF_DURATION_MS);
+            SetBinding(BINDING_CALLBACK_REWARD_CHANGE, rewardUpdateBinding);
         }
 
-        /// <summary>
-        /// Updates the visual state of the card based on its current data.
-        /// </summary>
-        private void UpdateVisuals()
+        private void SetupBindings()
         {
-            var stringDatabase = LocalizationSettings.StringDatabase;
 
-            // Update day text
-            if (_dayText != null)
+            SetupDayTextBindings();
+            SetupRewardUpdateCallback();
+            SetupRewardGradientBindings();
+            SetupRewardAmountBindings();
+            SetupCardStateBindings();
+            SetupClaimButtonBindings();
+            SetupIconBindings();
+        }
+
+        private void SetupDayTextBindings()
+        {
+            if (_dayText == null) return;
+
+            var dayTextBinding = new DataBinding
             {
-                _dayText.text = stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.DAY_LABEL) + $" {_day}";
-                _dayText.RemoveFromClassList(UISelectors.DailyRewardCard.DAY_TEXT_LOCKED_CLASS);
-                _dayText.RemoveFromClassList(UISelectors.DailyRewardCard.DAY_TEXT_CLAIMED_CLASS);
-                if (_cardType == ECardType.Locked)
-                {
-                    _dayText.AddToClassList(UISelectors.DailyRewardCard.DAY_TEXT_LOCKED_CLASS);
-                }
-                else if (_isClaimed)
-                {
-                    _dayText.AddToClassList(UISelectors.DailyRewardCard.DAY_TEXT_CLAIMED_CLASS);
-                }
+                dataSourcePath = new PropertyPath("day"),
+                bindingMode = BindingMode.ToTarget
+            };
+            dayTextBinding.sourceToUiConverters.AddConverter((ref int day) =>
+            {
+                return _stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.DAY_LABEL, new object[] { day });
+            });
+            _dayText.SetBinding("text", dayTextBinding);
+
+            var dayTextClassBinding = new MultiDependencyBinding
+            {
+                dependencyPaths = new[] { "type", "claimed" }
+            };
+            dayTextClassBinding.AddCallback<ECardType, bool>((type, claimed) =>
+            {
+                UpdateDayTextClasses(type, claimed);
+            });
+            _dayText.SetBinding(BINDING_CALLBACK, dayTextClassBinding);
+        }
+
+        private void UpdateDayTextClasses(ECardType type, bool claimed)
+        {
+            _dayText.RemoveFromClassList(UISelectors.DailyRewardCard.DAY_TEXT_LOCKED_CLASS);
+            _dayText.RemoveFromClassList(UISelectors.DailyRewardCard.DAY_TEXT_CLAIMED_CLASS);
+            if (type == ECardType.Locked)
+            {
+                _dayText.AddToClassList(UISelectors.DailyRewardCard.DAY_TEXT_LOCKED_CLASS);
+            }
+            else if (claimed)
+            {
+                _dayText.AddToClassList(UISelectors.DailyRewardCard.DAY_TEXT_CLAIMED_CLASS);
             }
 
-            // Update card header
-            if (_cardHeader != null)
+            _cardHeader.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_HEADER_LOCKED_CLASS);
+            _cardHeader.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_HEADER_CLAIMED_CLASS);
+            if (type == ECardType.Locked)
             {
-                _cardHeader.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_HEADER_LOCKED_CLASS);
-                _cardHeader.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_HEADER_CLAIMED_CLASS);
-                if (_cardType == ECardType.Locked)
-                {
-                    _cardHeader.AddToClassList(UISelectors.DailyRewardCard.CARD_HEADER_LOCKED_CLASS);
-                }
-                else if (_isClaimed)
-                {
-                    _cardHeader.AddToClassList(UISelectors.DailyRewardCard.CARD_HEADER_CLAIMED_CLASS);
-                }
+                _cardHeader.AddToClassList(UISelectors.DailyRewardCard.CARD_HEADER_LOCKED_CLASS);
             }
+            else if (claimed)
+            {
+                _cardHeader.AddToClassList(UISelectors.DailyRewardCard.CARD_HEADER_CLAIMED_CLASS);
+            }
+        }
 
-            // Update reward gradient
+        private void SetupRewardGradientBindings()
+        {
+            if (_rewardGradient == null) return;
+
+            var gradientTextBinding = new MultiDependencyBinding
+            {
+                dependencyPaths = new[] { "type", "reward.rewardType" }
+            };
+            gradientTextBinding.SetConverter<ECardType, ERewardType, string>((type, rewardType) =>
+            {
+                return GetRewardGradientText(type, rewardType);
+            });
+            _rewardGradient.SetBinding("text", gradientTextBinding);
+
+            var gradientClassBinding = new MultiDependencyBinding
+            {
+                dependencyPaths = new[] { "type", "reward.rewardType" }
+            };
+            gradientClassBinding.AddCallback<ECardType, ERewardType>((type, rewardType) =>
+            {
+                UpdateRewardGradientClasses(type, rewardType);
+                UpdateRewardAmountClasses(type, rewardType);
+                UpdateCardGlowClasses(type, rewardType);
+            });
+            SetBinding(BINDING_CALLBACK, gradientClassBinding);
+        }
+
+        private string GetRewardGradientText(ECardType type, ERewardType rewardType)
+        {
+            if (type == ECardType.Locked)
+                return _stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.CARD_STATE_LOCKED);
+
+            return rewardType switch
+            {
+                ERewardType.Gems => _stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_TYPE_GEMS),
+                ERewardType.Tokens => _stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_TYPE_TOKENS),
+                ERewardType.Coins => _stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_TYPE_COINS),
+                ERewardType.XP => _stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_TYPE_XP),
+                _ => string.Empty
+            };
+        }
+
+        private void UpdateRewardGradientClasses(ECardType type, ERewardType rewardType)
+        {
             if (_rewardGradient != null)
             {
                 _rewardGradient.RemoveFromClassList(UISelectors.DailyRewardCard.REWARD_GRADIENT_LOCKED_CLASS);
                 _rewardGradient.RemoveFromClassList(UISelectors.DailyRewardCard.REWARD_GRADIENT_GEMS_CLASS);
                 _rewardGradient.RemoveFromClassList(UISelectors.DailyRewardCard.REWARD_GRADIENT_TOKENS_CLASS);
-                if (_cardType == ECardType.Locked)
+                if (type == ECardType.Locked)
                 {
-                    _rewardGradient.text = stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.CARD_STATE_LOCKED);
                     _rewardGradient.AddToClassList(UISelectors.DailyRewardCard.REWARD_GRADIENT_LOCKED_CLASS);
                 }
                 else
                 {
-                    switch (_rewardType)
+                    switch (rewardType)
                     {
                         case ERewardType.Gems:
-                            _rewardGradient.text = stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_TYPE_GEMS);
                             _rewardGradient.AddToClassList(UISelectors.DailyRewardCard.REWARD_GRADIENT_GEMS_CLASS);
                             break;
                         case ERewardType.Tokens:
-                            _rewardGradient.text = stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_TYPE_TOKENS);
                             _rewardGradient.AddToClassList(UISelectors.DailyRewardCard.REWARD_GRADIENT_TOKENS_CLASS);
                             break;
-                        case ERewardType.Coins:
-                            _rewardGradient.text = stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_TYPE_COINS);
-                            break;
-                        case ERewardType.XP:
-                            _rewardGradient.text = stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_TYPE_XP);
-                            break;
-                        default:
-                            break;
                     }
                 }
             }
+        }
 
-            // Update reward amount
-            if (_rewardAmount != null)
+        private void UpdateRewardAmountClasses(ECardType type, ERewardType rewardType)
+        {
+            _rewardAmount.RemoveFromClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_LOCKED_CLASS);
+            _rewardAmount.RemoveFromClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_GEMS_CLASS);
+            _rewardAmount.RemoveFromClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_TOKENS_CLASS);
+            _rewardAmount.RemoveFromClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_COINS_CLASS);
+            if (type == ECardType.Locked)
             {
-                _rewardAmount.text = $"x{_rewardAmountValue}";
-                _rewardAmount.RemoveFromClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_LOCKED_CLASS);
-                _rewardAmount.RemoveFromClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_GEMS_CLASS);
-                _rewardAmount.RemoveFromClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_TOKENS_CLASS);
-                _rewardAmount.RemoveFromClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_COINS_CLASS);
-                if (_cardType == ECardType.Locked)
+                _rewardAmount.text = _stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_AMOUNT_LOCKED);
+                _rewardAmount.AddToClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_LOCKED_CLASS);
+            }
+            else
+            {
+                switch (rewardType)
                 {
-                    _rewardAmount.text = stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_AMOUNT_LOCKED);
-                    _rewardAmount.AddToClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_LOCKED_CLASS);
-                }
-                else
-                {
-                    switch (_rewardType)
-                    {
-                        case ERewardType.Gems:
-                            _rewardAmount.AddToClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_GEMS_CLASS);
-                            break;
-                        case ERewardType.Tokens:
-                            _rewardAmount.AddToClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_TOKENS_CLASS);
-                            break;
-                        case ERewardType.Coins:
-                            _rewardAmount.AddToClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_COINS_CLASS);
-                            break;
-                        case ERewardType.XP:
-                            break;
-                        default:
-                            break;
-                    }
+                    case ERewardType.Gems:
+                        _rewardAmount.AddToClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_GEMS_CLASS);
+                        break;
+                    case ERewardType.Tokens:
+                        _rewardAmount.AddToClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_TOKENS_CLASS);
+                        break;
+                    case ERewardType.Coins:
+                        _rewardAmount.AddToClassList(UISelectors.DailyRewardCard.REWARD_AMOUNT_COINS_CLASS);
+                        break;
                 }
             }
+        }
 
-            // Update card glow
+        private void UpdateCardGlowClasses(ECardType type, ERewardType rewardType)
+        {
             if (_cardGlow != null)
             {
                 _cardGlow.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_GLOW_GEMS_CLASS);
                 _cardGlow.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_GLOW_TOKENS_CLASS);
-                if (_cardType != ECardType.Locked)
+                if (type != ECardType.Locked)
                 {
-                    switch (_rewardType)
+                    switch (rewardType)
                     {
                         case ERewardType.Gems:
                             _cardGlow.AddToClassList(UISelectors.DailyRewardCard.CARD_GLOW_GEMS_CLASS);
@@ -359,42 +390,133 @@ namespace Scripts.UI.Components
                         case ERewardType.Tokens:
                             _cardGlow.AddToClassList(UISelectors.DailyRewardCard.CARD_GLOW_TOKENS_CLASS);
                             break;
-                        case ERewardType.Coins:
-                            break;
-                        case ERewardType.XP:
-                            break;
-                        default:
-                            break;
                     }
                 }
             }
+        }
 
-            // Update card state
-            if (_card != null)
+        private void SetupRewardAmountBindings()
+        {
+            if (_rewardAmount == null) return;
+
+            var amountTextBinding = new MultiDependencyBinding
             {
-                _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_LOCKED_CLASS);
-                _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_CURRENT_CLASS);
-                if (_cardType == ECardType.Locked)
-                {
-                    _card.AddToClassList(UISelectors.DailyRewardCard.CARD_LOCKED_CLASS);
-                }
-                else if (_isCurrentDay)
-                {
-                    _card.AddToClassList(UISelectors.DailyRewardCard.CARD_CURRENT_CLASS);
-                }
-            }
-
-            // Update claim button
-            if (_claimButton != null)
+                dependencyPaths = new[] { "type", "reward.rewardAmount" }
+            };
+            amountTextBinding.SetConverter<ECardType, int, string>((type, amount) =>
             {
-                _claimButton.label = _isClaimed
-                    ? stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.CLAIM_BUTTON_CLAIMED)
-                    : stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.CLAIM_BUTTON_TEXT);
-                _claimButton.SetPremiumButtonEnabled(_cardType != ECardType.Locked && !_isClaimed);
-            }
+                if (type == ECardType.Locked)
+                    return _stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_AMOUNT_LOCKED);
+                return _stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REWARD_AMOUNT_FORMAT, new object[] { amount });
+            });
+            _rewardAmount.SetBinding("text", amountTextBinding);
+        }
 
-            // Update icon
-            UpdateIcon();
+        private void SetupCardStateBindings()
+        {
+            if (_card == null) return;
+
+            var cardClassBinding = new MultiDependencyBinding
+            {
+                dependencyPaths = new[] { "type", "isCurrentDay" }
+            };
+            cardClassBinding.AddCallback<ECardType, bool>((type, isCurrentDay) =>
+            {
+                if (_card != null)
+                {
+                    _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_LOCKED_CLASS);
+                    _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_CURRENT_CLASS);
+                    if (type == ECardType.Locked)
+                    {
+                        _card.AddToClassList(UISelectors.DailyRewardCard.CARD_LOCKED_CLASS);
+                    }
+                    else if (isCurrentDay)
+                    {
+                        _card.AddToClassList(UISelectors.DailyRewardCard.CARD_CURRENT_CLASS);
+                    }
+                }
+            });
+            _card.SetBinding(BINDING_CALLBACK, cardClassBinding);
+        }
+
+        private void SetupClaimButtonBindings()
+        {
+            if (_claimButton == null) return;
+
+            var buttonLabelBinding = new DataBinding
+            {
+                dataSourcePath = new PropertyPath("claimed"),
+                bindingMode = BindingMode.ToTarget
+            };
+            buttonLabelBinding.sourceToUiConverters.AddConverter((ref bool claimed) => claimed
+                ? _stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.CLAIM_BUTTON_CLAIMED)
+                : _stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.CLAIM_BUTTON_TEXT));
+            _claimButton.SetBinding("label", buttonLabelBinding);
+
+            var buttonEnabledBinding = new MultiDependencyBinding
+            {
+                dependencyPaths = new[] { "type", "claimed" }
+            };
+            buttonEnabledBinding.AddCallback<ECardType, bool>((type, claimed) =>
+            {
+                _claimButton.SetPremiumButtonEnabled(type != ECardType.Locked && !claimed);
+            });
+            _claimButton.SetBinding(BINDING_CALLBACK, buttonEnabledBinding);
+        }
+
+        private void SetupIconBindings()
+        {
+            if (_iconLabel == null) return;
+
+            var iconBinding = new DataBinding
+            {
+                dataSourcePath = new PropertyPath("reward.rewardType"),
+                bindingMode = BindingMode.ToTarget
+            };
+            iconBinding.sourceToUiConverters.AddConverter((ref ERewardType rewardType) =>
+            {
+                var iconType = RewardIconUtils.GetIconTypeForReward(rewardType);
+                return RewardIconUtils.GetEmojiForIconType(iconType);
+            });
+            _iconLabel.SetBinding("text", iconBinding);
+        }
+
+        /// <summary>
+        /// Plays the reroll animation sequence for the card.
+        /// </summary>
+        private void PlayRerollAnimation()
+        {
+            StopAllAnimations();
+            StartRerollOutAnimation();
+        }
+
+        private void StartRerollOutAnimation()
+        {
+            _card.AddToClassList(UISelectors.DailyRewardCard.CARD_REROLL_OUT_CLASS);
+            _rerollOutSchedule = _card.schedule.Execute(() =>
+            {
+                _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_REROLL_OUT_CLASS);
+                StartRerollInAnimation();
+            });
+            _rerollOutSchedule.ExecuteLater(REROLL_HALF_DURATION_MS);
+        }
+
+        private void StartRerollInAnimation()
+        {
+            _card.AddToClassList(UISelectors.DailyRewardCard.CARD_REROLL_IN_CLASS);
+            _rerollInSchedule = _card.schedule.Execute(() =>
+            {
+                _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_REROLL_IN_CLASS);
+                StartSettleAnimation();
+            });
+            _rerollInSchedule.ExecuteLater(REROLL_HALF_DURATION_MS);
+        }
+
+        private void StartSettleAnimation()
+        {
+            _card.AddToClassList(UISelectors.DailyRewardCard.CARD_SETTLE_CLASS);
+            var settleSchedule = _card.schedule.Execute(() => _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_SETTLE_CLASS));
+            settleSchedule.ExecuteLater(SETTLE_DELAY_MS);
         }
 
         /// <summary>
@@ -403,35 +525,45 @@ namespace Scripts.UI.Components
         /// <param name="dayNumber">The day number for staggered animation timing.</param>
         public void Reveal(int dayNumber)
         {
-            // Stop any ongoing animations first
             StopAllAnimations();
-
-            // Calculate delay based on day number for staggered reveal
             long revealDelay = REVEAL_BASE_DELAY_MS + (dayNumber * REVEAL_CARD_DELAY_MS);
+            StartRevealAnimation(revealDelay);
+        }
 
-            // Schedule the reveal animation
+        private void StartRevealAnimation(long delay)
+        {
+            _card.AddToClassList(UISelectors.DailyRewardCard.CARD_REVEALED_CLASS);
             _revealSchedule = _card.schedule.Execute(() =>
             {
                 _card.AddToClassList(UISelectors.DailyRewardCard.CARD_SETTLE_CLASS);
-                var glowSchedule = _card.schedule.Execute(() =>
-                {
-                    if (_cardGlow != null)
-                    {
-                        _cardGlow.AddToClassList(UISelectors.DailyRewardCard.CARD_GLOW_POP_CLASS);
-                        var popSchedule = _cardGlow.schedule.Execute(() => _cardGlow.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_GLOW_POP_CLASS));
-                        popSchedule.ExecuteLater(GLOW_POP_DURATION_MS);
-                    }
-                });
-                glowSchedule.ExecuteLater(GLOW_POP_DURATION_MS);
+                StartGlowAnimation();
             });
-            _card.AddToClassList(UISelectors.DailyRewardCard.CARD_REVEALED_CLASS);
-            _revealSchedule.ExecuteLater(revealDelay);
+            _revealSchedule.ExecuteLater(delay);
+        }
+
+        private void StartGlowAnimation()
+        {
+            if (_cardGlow == null) return;
+
+            var glowSchedule = _card.schedule.Execute(() =>
+            {
+                _cardGlow.AddToClassList(UISelectors.DailyRewardCard.CARD_GLOW_POP_CLASS);
+                var popSchedule = _cardGlow.schedule.Execute(() => _cardGlow.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_GLOW_POP_CLASS));
+                popSchedule.ExecuteLater(GLOW_POP_DURATION_MS);
+            });
+            glowSchedule.ExecuteLater(GLOW_POP_DURATION_MS);
         }
 
         /// <summary>
         /// Stops all ongoing animations on the card.
         /// </summary>
         private void StopAllAnimations()
+        {
+            StopScheduledAnimations();
+            RemoveAnimationClasses();
+        }
+
+        private void StopScheduledAnimations()
         {
             if (_rerollOutSchedule != null)
             {
@@ -448,8 +580,10 @@ namespace Scripts.UI.Components
                 _revealSchedule.Pause();
                 _revealSchedule = null;
             }
+        }
 
-            // Remove animation classes
+        private void RemoveAnimationClasses()
+        {
             if (_card != null)
             {
                 _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_REROLL_OUT_CLASS);
@@ -457,22 +591,32 @@ namespace Scripts.UI.Components
                 _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_REVEALED_CLASS);
                 _card.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_SETTLE_CLASS);
             }
-            if (_cardGlow != null)
-            {
-                _cardGlow.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_GLOW_POP_CLASS);
-            }
+            _cardGlow?.RemoveFromClassList(UISelectors.DailyRewardCard.CARD_GLOW_POP_CLASS);
         }
 
         /// <summary>
-        /// Sets the icon for the card based on the reward type.
+        /// Clears all bindings and their associated resources.
         /// </summary>
-        private void UpdateIcon()
+        private void ClearElementsBindings()
         {
-            if (_iconLabel != null)
-            {
-                var iconType = RewardIconUtils.GetIconTypeForReward(_rewardType);
-                _iconLabel.text = RewardIconUtils.GetEmojiForIconType(iconType);
-            }
+            ClearBindings();
+            _dayText?.ClearBindings();
+            _rewardGradient?.ClearBindings();
+            _rewardAmount?.ClearBindings();
+            _card?.ClearBindings();
+            _claimButton?.ClearBindings();
+            _iconLabel?.ClearBindings();
+        }
+
+        /// <summary>
+        /// Clears all data and resets the control to its initial state.
+        /// </summary>
+        private void ClearData()
+        {
+            _initialized = false;
+            dataSource = null;
+            _cardData = null;
+            _stringDatabase = null;
         }
     }
 }

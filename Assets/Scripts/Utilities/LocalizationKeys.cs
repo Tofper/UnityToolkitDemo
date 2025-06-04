@@ -11,6 +11,7 @@ namespace Scripts.Utilities
                 public const string REROLLS_COUNT_REMAIN = "rerolls-count-remain";
                 public const string REROLLS_COUNT_EMPTY = "rerolls-count-empty";
                 public const string DAY_LABEL = "day-label";
+                public const string DAY_LABEL_FORMAT = "day-label-format";
                 public const string CARD_STATE_LOCKED = "card-state-locked";
                 public const string REWARD_TYPE_XP = "reward-type-xp";
                 public const string REWARD_TYPE_GEMS = "reward-type-gems";
@@ -20,6 +21,7 @@ namespace Scripts.Utilities
                 public const string REWARD_AMOUNT_LOCKED = "reward-amount-locked";
                 public const string CLAIM_BUTTON_TEXT = "claim-button-text";
                 public const string CLAIM_BUTTON_CLAIMED = "claim-button-claimed";
+                public const string REROLLS_INFO_FORMAT = "rerolls-info-format";
             }
 
             public static class CurrencyDisplay
@@ -30,7 +32,7 @@ namespace Scripts.Utilities
 
             public static class Components
             {
-                public const string PREMIUM_BUTTON_CLAIM = "CLAIM"; // This was a hardcoded string in PremiumButtonControl.cs
+                public const string PREMIUM_BUTTON_CLAIM = "CLAIM";
             }
         }
 

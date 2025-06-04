@@ -133,7 +133,6 @@ namespace Scripts.UI.Components
             SetEnabled(newState is not EButtonState.Disabled and not EButtonState.Animating);
 
             _currentState = newState;
-            Debug.Log($"{nameof(RewardsRerollButton)}: Changed state to {newState}");
         }
 
         /// <summary>
@@ -179,22 +178,16 @@ namespace Scripts.UI.Components
         /// </summary>
         private void OnRerollClicked()
         {
-            Debug.Log($"{nameof(RewardsRerollButton)}: Reroll button clicked! Invoking OnRerollClickedEvent.");
             OnRerollClickedEvent?.Invoke();
         }
 
         private void InternalRerollClicked()
         {
-            Debug.Log($"{nameof(RewardsRerollButton)}: Reroll button InternalRerollClicked!");
             // Check if currently animating or disabled before allowing click logic
             if (_currentState is not EButtonState.Animating and not EButtonState.Disabled)
             {
                 OnRerollClicked();
                 StartDiceAnimation();
-            }
-            else
-            {
-                Debug.LogWarning($"{nameof(RewardsRerollButton)}: Click ignored while in state: {_currentState}");
             }
         }
 
@@ -204,7 +197,6 @@ namespace Scripts.UI.Components
         /// <param name="evt">The pointer down event data.</param>
         private void OnPointerDownRoll(PointerDownEvent evt)
         {
-            Debug.Log($"{nameof(RewardsRerollButton)}: OnPointerDown!");
             SetState(EButtonState.Pressed);
         }
 
@@ -214,7 +206,6 @@ namespace Scripts.UI.Components
         /// <param name="evt">The pointer up event data.</param>
         private void OnPointerUp(PointerUpEvent evt)
         {
-            Debug.Log($"{nameof(RewardsRerollButton)}: OnPointerUp!");
             // Change state back based on whether pointer is still over the element
             if (this.HasPointerCapture(evt.pointerId))
             {
@@ -248,7 +239,6 @@ namespace Scripts.UI.Components
         /// <param name="evt">The pointer over event data.</param>
         private void OnPointerOver(PointerOverEvent evt)
         {
-            Debug.Log($"{nameof(RewardsRerollButton)}: OnPointerOver!");
             if (!enabledSelf)
             {
                 return;
@@ -266,7 +256,6 @@ namespace Scripts.UI.Components
         /// <param name="evt">The pointer out event data.</param>
         private void OnPointerOut(PointerOutEvent evt)
         {
-            Debug.Log($"{nameof(RewardsRerollButton)}: OnPointerOut!");
             if (!enabledSelf)
             {
                 return;

@@ -76,11 +76,7 @@ namespace Scripts.Utilities
         /// </summary>
         private void OnDestroy()
         {
-            if (_instance == this)
-            {
-                _instance = null;
-                Debug.Log($"{nameof(UIToolkitCoroutineHelper)}: Singleton instance destroyed.");
-            }
+            _instance = null;
         }
     }
 }

@@ -1,6 +1,7 @@
 using Scripts.Data;
 using Scripts.UI.Components;
 using Scripts.Utilities;
+using Unity.Properties;
 using UnityEngine;
 using UnityEngine.Localization.Settings;
 using UnityEngine.UIElements;
@@ -92,6 +93,22 @@ namespace Scripts.UI.GameScreens
             {
                 Debug.LogWarning($"{nameof(DailyRewardsScreen)}: RerollButton is null. Cannot subscribe to click event.");
             }
+
+            _rerollInfoText.SetBinding("text", new MultiDependencyBinding
+            {
+                dependencyPaths = new[] { "MaxRerolls", "RerollCount" }
+            }.SetConverter<int, int, string>((MaxRerolls, RerollCount) =>
+            {
+                int remainingRerolls = MaxRerolls - RerollCount;
+                var stringDatabase = LocalizationSettings.StringDatabase;
+                var remainingText = remainingRerolls > 0
+                    ? stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REROLLS_COUNT_REMAIN, new object[] { remainingRerolls })
+                    : stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REROLLS_COUNT_EMPTY);
+                return stringDatabase.GetLocalizedString(LocalizationKeys.Tables.MAIN, LocalizationKeys.UI.DailyRewards.REROLLS_COUNT_USED,
+                    new object[] { RerollCount, MaxRerolls, remainingText });
+            }));
+            _rerollInfoText.dataSource = _viewModel;
+            SetupCurrencyDisplayBinding();
         }
 
         /// <summary>
@@ -118,6 +135,36 @@ namespace Scripts.UI.GameScreens
             }
         }
 
+        private void SetupCurrencyDisplayBinding()
+        {
+            if (_currencyDisplay != null && _viewModel != null)
+            {
+                _currencyDisplay.dataSource = _viewModel;
+                _currencyDisplay.SetBinding("coins", new AnimateBinding
+                {
+                    dataSourcePath = new PropertyPath(nameof(DailyRewardsViewModel.CurrentCoins)),
+                    bindingMode = BindingMode.ToTarget
+                });
+                _currencyDisplay.SetBinding("gems", new AnimateBinding
+                {
+                    dataSourcePath = new PropertyPath(nameof(DailyRewardsViewModel.CurrentGems)),
+                    bindingMode = BindingMode.ToTarget
+                });
+            }
+            else
+            {
+                if (_currencyDisplay == null)
+                {
+                    Debug.LogWarning($"{nameof(DailyRewardsScreen)}: Cannot setup currency display binding, CurrencyDisplayControl element is null.");
+                }
+
+                if (_viewModel == null)
+                {
+                    Debug.LogWarning($"{nameof(DailyRewardsScreen)}: Cannot setup currency display binding, ViewModel is null.");
+                }
+            }
+        }
+
         /// <summary>
         /// Called when the behaviour becomes disabled or inactive.
         /// Unregisters event handlers to prevent memory leaks.
@@ -133,6 +180,30 @@ namespace Scripts.UI.GameScreens
             if (_rerollButton != null)
             {
                 _rerollButton.OnRerollClickedEvent -= OnRerollClickedHandler;
+            }
+
+            // Clear bindings
+            if (_rerollInfoText != null)
+            {
+                _rerollInfoText.ClearBinding("text");
+            }
+            if (_currencyDisplay != null)
+            {
+                _currencyDisplay.ClearBinding("coins");
+                _currencyDisplay.ClearBinding("gems");
+            }
+
+            // Clear cards
+            if (_cardsRow != null)
+            {
+                foreach (var child in _cardsRow.Children())
+                {
+                    if (child is DailyRewardCardControl cardControl)
+                    {
+                        cardControl.OnClaimEvent -= OnClaimRewardHandler;
+                    }
+                }
+                _cardsRow.Clear();
             }
         }
 
@@ -152,34 +223,7 @@ namespace Scripts.UI.GameScreens
                 Debug.LogWarning($"{nameof(DailyRewardsScreen)}: UpdateUIFromViewModel called with null ViewModel.");
                 return;
             }
-            UpdateCurrencyDisplay();
             PopulateCards();
-            UpdateRerollInfo();
-        }
-
-        /// <summary>
-        /// Updates the currency display control with current coin and gem values.
-        /// </summary>
-        private void UpdateCurrencyDisplay()
-        {
-            // Get currency values from ViewModel
-            if (_currencyDisplay != null && _viewModel != null)
-            {
-                _currencyDisplay.coins = _viewModel.CurrentCoins;
-                _currencyDisplay.gems = _viewModel.CurrentGems;
-            }
-            else
-            {
-                if (_currencyDisplay == null)
-                {
-                    Debug.LogWarning($"{nameof(DailyRewardsScreen)}: Cannot update currency display, CurrencyDisplayControl element is null.");
-                }
-
-                if (_viewModel == null)
-                {
-                    Debug.LogWarning($"{nameof(DailyRewardsScreen)}: Cannot update currency display, ViewModel is null.");
-                }
-            }
         }
 
         /// <summary>
@@ -228,44 +272,13 @@ namespace Scripts.UI.GameScreens
                 if (cardControl != null)
                 {
                     var cardData = cards[i];
-                    cardControl.SetData(
-                        cardData,
-                        cardData.day == _viewModel.CurrentDay
-                    );
+                    cardControl.SetData(cardData);
                 }
                 else
                 {
                     Debug.LogError($"{nameof(DailyRewardsScreen)}: Child element at index {i} is not a DailyRewardCardControl.");
                 }
             }
-        }
-
-        /// <summary>
-        /// Updates the text displaying reroll information.
-        /// Logs a warning if the reroll info text element or ViewModel is missing.
-        /// </summary>
-        private void UpdateRerollInfo()
-        {
-            if (_rerollInfoText == null)
-            {
-                Debug.LogWarning($"{nameof(DailyRewardsScreen)}: Cannot update reroll info, RerollInfoText element is null.");
-                return;
-            }
-            if (_viewModel == null)
-            {
-                Debug.LogWarning($"{nameof(DailyRewardsScreen)}: Cannot update reroll info, ViewModel is null.");
-                return;
-            }
-
-            LocalizedStringDatabase stringDatabase = LocalizationSettings.StringDatabase;
-
-            int remainingRerolls = _viewModel.MaxRerolls - _viewModel.RerollCount;
-
-            _rerollInfoText.text = stringDatabase.GetLocalizedString("LocalesTable",
-                    LocalizationKeys.UI.DailyRewards.REROLLS_COUNT_USED) + $" {_viewModel.RerollCount}/{_viewModel.MaxRerolls} — " +
-                (remainingRerolls > 0 ? stringDatabase.GetLocalizedString("LocalesTable",
-                    LocalizationKeys.UI.DailyRewards.REROLLS_COUNT_REMAIN) + $" {remainingRerolls}" : stringDatabase.GetLocalizedString("LocalesTable",
-                    LocalizationKeys.UI.DailyRewards.REROLLS_COUNT_EMPTY));
         }
 
         /// <summary>

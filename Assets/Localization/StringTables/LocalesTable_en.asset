@@ -45,11 +45,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2557527891968
-    m_Localized: 'Rerolls used:'
+    m_Localized: "Rerolls used {0}/{1} \u2014 {2}"
     m_Metadata:
       m_Items: []
   - m_Id: 2694316728320
-    m_Localized: 'Reamining:'
+    m_Localized: '{0} rerolls left'
     m_Metadata:
       m_Items: []
   - m_Id: 2797874094080
@@ -57,7 +57,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2888185847808
-    m_Localized: DAY
+    m_Localized: DAY {0}
     m_Metadata:
       m_Items: []
   - m_Id: 31343040438272
@@ -82,6 +82,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 333544715624448
     m_Localized: XP
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5953870048698368
+    m_Localized: x{0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5957301232640000
+    m_Localized: No rerolls left
     m_Metadata:
       m_Items: []
   references:

@@ -1,5 +1,6 @@
 using System;
 using Scripts.Utilities;
+using Unity.Properties;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -24,6 +25,7 @@ namespace Scripts.UI.Components
         /// The button label text. Can be set via UXML attribute "label".
         /// </summary>
         [UxmlAttribute("label")]
+        [CreateProperty]
         public string label
         {
             get => _label;
@@ -136,7 +138,6 @@ namespace Scripts.UI.Components
         /// </summary>
         private void OnButtonClicked()
         {
-            Debug.Log($"{nameof(PremiumButtonControl)}: Base button clicked! Invoking Clicked event.");
             OnClickedEvent?.Invoke(); // Invoke the public event
             // Removed the original redispatching logic as invoking the event is sufficient for external subscribers.
         }
@@ -149,7 +150,6 @@ namespace Scripts.UI.Components
         {
             if (_button != null && _button.enabledSelf) // Check if button element exists and is enabled
             {
-                Debug.Log($"{nameof(PremiumButtonControl)}: Pointer Enter. Setting shadow state to Hover.");
                 SetButtonState(EButtonState.Hover);
             }
         }
@@ -162,7 +162,6 @@ namespace Scripts.UI.Components
         {
             if (_button != null && _button.enabledSelf) // Check if button element exists and is enabled
             {
-                Debug.Log($"{nameof(PremiumButtonControl)}: Pointer Leave. Setting shadow state to Default.");
                 SetButtonState(EButtonState.Default);
             }
         }
@@ -175,7 +174,6 @@ namespace Scripts.UI.Components
         {
             if (_button != null && _button.enabledSelf && evt.button == 0) // Check element, enabled state, and left mouse button
             {
-                Debug.Log($"{nameof(PremiumButtonControl)}: Pointer Down. Setting shadow state to Pressed.");
                 SetButtonState(EButtonState.Pressed);
             }
         }
@@ -188,7 +186,6 @@ namespace Scripts.UI.Components
         {
             if (_button != null && _button.enabledSelf && evt.button == 0) // Check element, enabled state, and left mouse button
             {
-                Debug.Log($"{nameof(PremiumButtonControl)}: Pointer Up. Setting state to Hover if enabled, as PointerLeave will handle transition to Default if pointer is not over.");
                 SetButtonState(EButtonState.Hover); // Transition from Pressed to Hover if enabled
             }
         }
@@ -205,7 +202,6 @@ namespace Scripts.UI.Components
                 Debug.LogWarning($"{nameof(PremiumButtonControl)}: Cannot set shadow state to {state}, shadow element not found.");
                 return;
             }
-            Debug.Log($"{nameof(PremiumButtonControl)}: Setting shadow state to {state}.");
             _shadow.EnableInClassList(UISelectors.PremiumButton.SHADOW_DEFAULT_CLASS, state == EButtonState.Default);
             _shadow.EnableInClassList(UISelectors.PremiumButton.SHADOW_HOVER_CLASS, state == EButtonState.Hover);
             _shadow.EnableInClassList(UISelectors.PremiumButton.SHADOW_PRESSED_CLASS, state == EButtonState.Pressed);
@@ -224,7 +220,6 @@ namespace Scripts.UI.Components
                 Debug.LogWarning($"{nameof(PremiumButtonControl)}: Cannot update shadow state, button element not found.");
                 return;
             }
-            Debug.Log($"{nameof(PremiumButtonControl)}: Updating shadow state from enabled state: {_button.enabledSelf}.");
             SetButtonState(_button.enabledSelf ? EButtonState.Default : EButtonState.Disabled);
         }
 
@@ -237,7 +232,6 @@ namespace Scripts.UI.Components
         {
             if (_button != null)
             {
-                Debug.Log($"{nameof(PremiumButtonControl)}: Setting button text to '{text}'.");
                 _button.text = text;
             }
             else
@@ -256,7 +250,6 @@ namespace Scripts.UI.Components
         {
             if (_button != null)
             {
-                Debug.Log($"{nameof(PremiumButtonControl)}: Setting enabled state to {enabled}.");
                 _button.SetEnabled(enabled);
                 UpdateButtonStateFromEnabled(); // Update shadow visual based on new enabled state
             }

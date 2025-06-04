@@ -1,15 +1,23 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using Unity.Properties;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Scripts.Data
 {
+
     /// <summary>
     /// ViewModel for the Daily Rewards screen.
     /// Manages the state and logic for displaying and interacting with daily reward cards.
     /// </summary>
-    public class DailyRewardsViewModel
+    public class DailyRewardsViewModel : INotifyBindablePropertyChanged
     {
+        private int _MaxRerolls = 3;
+        private int _RerollCount = 0;
+        private int _CurrentGems = 0;
+        private int _CurrentCoins = 0;
         /// <summary>
         /// Gets the list of daily reward card data.
         /// </summary>
@@ -17,11 +25,28 @@ namespace Scripts.Data
         /// <summary>
         /// Gets the current number of rerolls used.
         /// </summary>
-        public int RerollCount { get; private set; }
-        /// <summary>
+        [CreateProperty]
+        public int RerollCount
+        {
+            get => _RerollCount;
+            private set
+            {
+                _RerollCount = value;
+                Notify();
+            }
+        }
         /// Gets the maximum number of allowed rerolls.
         /// </summary>
-        public int MaxRerolls { get; private set; }
+        [CreateProperty]
+        public int MaxRerolls
+        {
+            get => _MaxRerolls;
+            private set
+            {
+                _MaxRerolls = value;
+                Notify();
+            }
+        }
         /// <summary>
         /// Gets the current day for daily rewards.
         /// </summary>
@@ -33,12 +58,36 @@ namespace Scripts.Data
 
         // Currency Properties to expose to the View
         /// <summary>Gets the current number of coins.</summary>
-        public int CurrentCoins { get; private set; }
+        [CreateProperty]
+        public int CurrentCoins
+        {
+            get => _CurrentCoins;
+            private set
+            {
+                _CurrentCoins = value;
+                Notify();
+            }
+        }
+
         /// <summary>Gets the current number of gems.</summary>
-        public int CurrentGems { get; private set; }
+        [CreateProperty]
+
+        public int CurrentGems
+        {
+            get => _CurrentGems;
+            private set
+            {
+                _CurrentGems = value;
+                Notify();
+            }
+        }
+
+        public int CurrentGemsFrem = 88;
 
         private DailyRewardsDataService _dataService;
         private CurrencyService _currencyService;
+
+        public event EventHandler<BindablePropertyChangedEventArgs> propertyChanged;
 
         /// <summary>
         /// Initializes a new instance of the DailyRewardsViewModel.
@@ -95,9 +144,17 @@ namespace Scripts.Data
 
                 // Create a new reward data for this day
                 var rewardData = initialRewards[day - 1];
-                Cards.Add(new CardData(day, initialCardType, rewardData, initialClaimedState));
+                var cardData = new CardData(day, initialCardType, rewardData, initialClaimedState);
+                cardData.isCurrentDay = day == CurrentDay;
+                Cards.Add(cardData);
             }
             Debug.Log($"{nameof(DailyRewardsViewModel)}: Initialized with {Cards.Count} cards.");
+        }
+
+        void Notify([CallerMemberName] string property = "")
+        {
+            Debug.Log($"This is name of {property}: Subscribed invoke.");
+            propertyChanged?.Invoke(this, new BindablePropertyChangedEventArgs(property));
         }
 
         /// <summary>
@@ -106,7 +163,6 @@ namespace Scripts.Data
         /// <param name="day">The day number of the reward to claim.</param>
         public void ClaimReward(int day)
         {
-            Debug.Log($"{nameof(DailyRewardsViewModel)}: Attempting to claim reward for day {day}.");
             var card = Cards.Find(c => c.day == day);
             if (card == null)
             {

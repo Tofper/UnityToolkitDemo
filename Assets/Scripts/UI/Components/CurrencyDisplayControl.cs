@@ -1,12 +1,10 @@
-using System;
-using System.Collections;
 using Scripts.Utilities;
+using Unity.Properties;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Scripts.UI.Components
 {
-    [UnityEngine.Scripting.Preserve]
     [UxmlElement]
     /// <summary>
     /// Control for displaying currency values (coins and gems) with animations.
@@ -22,12 +20,8 @@ namespace Scripts.UI.Components
 
         private Label _coinsValueLabel;
         private Label _gemsValueLabel;
-        private bool _coinsInitialized = false;
-        private bool _gemsInitialized = false;
         private int _coins;
         private int _gems;
-        private Coroutine _coinsAnimCoroutine;
-        private Coroutine _gemsAnimCoroutine;
 
         /// <summary>
         /// The animation duration for currency value changes.
@@ -39,162 +33,30 @@ namespace Scripts.UI.Components
         /// <summary>
         /// The current number of coins. Animates the displayed value when changed.
         /// </summary>
+        [CreateProperty]
         public int coins
         {
             get => _coins;
             set
             {
-                if (!_coinsInitialized)
-                {
-                    if (_coinsValueLabel != null)
-                    {
-                        _coinsValueLabel.text = value.ToString();
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"{nameof(CurrencyDisplayControl)}: Initial coin value set ({value}), but _coinsValueLabel is null.");
-                    }
-
-                    _coins = value;
-                    _coinsInitialized = true;
-                    return;
-                }
-                if (value == _coins)
-                {
-                    return;
-                }
-                Debug.Log($"[{nameof(CurrencyDisplayControl)}] coins: Updating from {_coins} to {value}");
-
-                if (Application.isPlaying)
-                {
-                    if (_coinsAnimCoroutine != null)
-                    {
-                        UIToolkitCoroutineHelper.StopUIToolkitCoroutine(_coinsAnimCoroutine);
-                    }
-
-                    Debug.Log($"[{nameof(CurrencyDisplayControl)}] coins: Starting animation from {_coins} to {value}");
-                    if (_coinsValueLabel != null)
-                    {
-                        _coinsAnimCoroutine = UIToolkitCoroutineHelper.StartUIToolkitCoroutine(
-                           AnimateNumber(_coins, value, v =>
-                           {
-                               if (_coinsValueLabel != null)
-                               {
-                                   _coinsValueLabel.text = Mathf.FloorToInt(v).ToString();
-                               }
-                           }, AnimationDuration)
-                       );
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"{nameof(CurrencyDisplayControl)}: Cannot animate coins, _coinsValueLabel is null.");
-                    }
-                }
-                else
-                {
-                    if (_coinsValueLabel != null)
-                    {
-                        _coinsValueLabel.text = value.ToString();
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"{nameof(CurrencyDisplayControl)}: Cannot set coins text, _coinsValueLabel is null.");
-                    }
-                }
                 _coins = value;
+                _coinsValueLabel.text = value.ToString();
             }
         }
 
         /// <summary>
         /// The current number of gems. Animates the displayed value when changed.
         /// </summary>
+        [CreateProperty]
         public int gems
         {
             get => _gems;
             set
             {
-                if (!_gemsInitialized)
-                {
-                    Debug.Log($"[{nameof(CurrencyDisplayControl)}] gems: Initializing to {value}");
-                    if (_gemsValueLabel != null)
-                    {
-                        _gemsValueLabel.text = value.ToString();
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"{nameof(CurrencyDisplayControl)}: Initial gem value set ({value}), but _gemsValueLabel is null.");
-                    }
-
-                    _gems = value;
-                    _gemsInitialized = true;
-                    return;
-                }
-                if (value == _gems)
-                {
-                    return;
-                }
-
-                if (Application.isPlaying)
-                {
-                    if (_gemsAnimCoroutine != null)
-                    {
-                        UIToolkitCoroutineHelper.StopUIToolkitCoroutine(_gemsAnimCoroutine);
-                    }
-
-                    if (_gemsValueLabel != null)
-                    {
-                        _gemsAnimCoroutine = UIToolkitCoroutineHelper.StartUIToolkitCoroutine(
-                           AnimateNumber(_gems, value, v =>
-                           {
-                               if (_gemsValueLabel != null)
-                               {
-                                   _gemsValueLabel.text = Mathf.FloorToInt(v).ToString();
-                               }
-                           }, AnimationDuration)
-                       );
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"{nameof(CurrencyDisplayControl)}: Cannot animate gems, _gemsValueLabel is null.");
-                    }
-                }
-                else
-                {
-                    if (_gemsValueLabel != null)
-                    {
-                        _gemsValueLabel.text = value.ToString();
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"{nameof(CurrencyDisplayControl)}: Cannot set gems text, _gemsValueLabel is null.");
-                    }
-                }
                 _gems = value;
+                _gemsValueLabel.text = value.ToString();
             }
         }
-
-        /// <summary>
-        /// Coroutine to animate a number change over time.
-        /// </summary>
-        /// <param name="from">Starting value.</param>
-        /// <param name="to">Target value.</param>
-        /// <param name="onUpdate">Action to call with the current animated value.</param>
-        /// <param name="duration">Duration of the animation in seconds.</param>
-        /// <returns>IEnumerator for the coroutine.</returns>
-        private IEnumerator AnimateNumber(float from, float to, Action<float> onUpdate, float duration)
-        {
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
-                float val = Mathf.Lerp(from, to, t);
-                onUpdate(val);
-                yield return null;
-            }
-            onUpdate(to);
-        }
-
         /// <summary>
         /// Constructor for the CurrencyDisplayControl.
         /// Loads UXML and USS, initializes elements, and registers callbacks.
@@ -226,9 +88,6 @@ namespace Scripts.UI.Components
 
             InitializeElements();
             RegisterCallbacks();
-
-            _coinsInitialized = false;
-            _gemsInitialized = false;
             // Initialize with 0 and let the setter handle the initial display
             coins = 0;
             gems = 0;
@@ -266,15 +125,6 @@ namespace Scripts.UI.Components
         {
             UnregisterCallbacks();
             // Stop any running coroutines to prevent issues after detach
-            if (_coinsAnimCoroutine != null)
-            {
-                UIToolkitCoroutineHelper.StopUIToolkitCoroutine(_coinsAnimCoroutine);
-            }
-
-            if (_gemsAnimCoroutine != null)
-            {
-                UIToolkitCoroutineHelper.StopUIToolkitCoroutine(_gemsAnimCoroutine);
-            }
         }
 
         /// <summary>

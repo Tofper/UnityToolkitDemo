@@ -83,6 +83,14 @@ MonoBehaviour:
     m_Key: reward-type-xp
     m_Metadata:
       m_Items: []
+  - m_Id: 5953870048698368
+    m_Key: reward-amount-format
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5957301232640000
+    m_Key: rerolls-count-empt
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
