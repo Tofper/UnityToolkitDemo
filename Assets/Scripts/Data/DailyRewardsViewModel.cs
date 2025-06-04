@@ -21,7 +21,8 @@ namespace Scripts.Data
         /// <summary>
         /// Gets the list of daily reward card data.
         /// </summary>
-        public List<CardData> Cards { get; private set; }
+        [CreateProperty]
+        public List<CardData> Cards { get; } = new List<CardData>();
         /// <summary>
         /// Gets the current number of rerolls used.
         /// </summary>
@@ -123,9 +124,10 @@ namespace Scripts.Data
 
             MaxRerolls = 3;
             RerollCount = 0;
-            CurrentDay = _dataService.CurrentDay;
-            Cards = new List<CardData>();
+            CurrentDay = _dataService?.CurrentDay ?? 0;
             List<RewardData> initialRewards = _dataService != null ? _dataService.GetRewardData() : new List<RewardData>();
+
+            Debug.Log($"{nameof(DailyRewardsViewModel)}: Creating cards for {initialRewards.Count} rewards. Current day: {CurrentDay}");
 
             // Create cards for each day
             for (int day = 1; day <= initialRewards.Count; day++)
@@ -149,6 +151,7 @@ namespace Scripts.Data
                 Cards.Add(cardData);
             }
             Debug.Log($"{nameof(DailyRewardsViewModel)}: Initialized with {Cards.Count} cards.");
+            Notify(nameof(Cards)); // Notify initial cards creation
         }
 
         void Notify([CallerMemberName] string property = "")
@@ -178,6 +181,7 @@ namespace Scripts.Data
             if (_dataService != null)
             {
                 _dataService.ClaimReward(day, Cards, _currencyService);
+                Notify(nameof(Cards)); // Notify that Cards collection has changed
                 OnStateChangedEvent.Invoke();
                 Debug.Log($"{nameof(DailyRewardsViewModel)}: Reward for day {day} claimed.");
             }
@@ -199,6 +203,7 @@ namespace Scripts.Data
                 if (_dataService != null)
                 {
                     _dataService.RerollUnclaimedRewards(Cards);
+                    Notify(nameof(Cards)); // Notify that Cards collection has changed
                     OnStateChangedEvent.Invoke();
                     Debug.Log($"{nameof(DailyRewardsViewModel)}: Rewards rerolled. Rerolls used: {RerollCount}.");
                 }

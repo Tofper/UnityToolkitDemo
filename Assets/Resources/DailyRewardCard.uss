@@ -35,8 +35,7 @@
 .card {
     width: 120px;
     height: 320px;
-    margin: 24px; /* Spacing between cards */
-    padding: 0;
+    margin-right: 24px; /* Spacing between cards */
     background-color: transparent;
     transition-property: opacity, translate, scale;
     transition-duration: 0.5s;

@@ -1,5 +1,6 @@
 using Scripts.Data;
 using Scripts.UI.Components;
+using Scripts.UI.Controls;
 using Scripts.Utilities;
 using Unity.Properties;
 using UnityEngine;
@@ -22,7 +23,7 @@ namespace Scripts.UI.GameScreens
         // Cached UI Toolkit elements
         private VisualElement _root;
         private CurrencyDisplayControl _currencyDisplay;
-        private VisualElement _cardsRow;
+        private SimpleListView _cardsListView;
         private Label _rerollInfoText;
         private RewardsRerollButton _rerollButton;
 
@@ -61,11 +62,34 @@ namespace Scripts.UI.GameScreens
                 Debug.LogWarning($"{nameof(DailyRewardsScreen)}: CurrencyDisplay element not found.");
             }
 
-            _cardsRow = _root.Q<VisualElement>(UISelectors.DailyRewardsScreen.CARDS_ROW);
-            if (_cardsRow == null)
+            // Create and setup SimpleListView for cards
+            _cardsListView = new SimpleListView();
+            _cardsListView.layoutDirection = FlexDirection.Row;
+            _cardsListView.style.flexGrow = 1;
+            _root.Q<VisualElement>(UISelectors.DailyRewardsScreen.CARDS_ROW).Add(_cardsListView);
+
+            // Setup card creation and binding
+            _cardsListView.makeItem = () => new DailyRewardCardControl();
+            _cardsListView.bindItem = (element, index) =>
             {
-                Debug.LogWarning($"{nameof(DailyRewardsScreen)}: CardsRow element not found.");
-            }
+                if (element is DailyRewardCardControl cardControl && _viewModel != null)
+                {
+                    var cardData = _viewModel.Cards[index];
+                    cardControl.SetData(cardData);
+                    cardControl.OnClaimEvent += OnClaimRewardHandler;
+                }
+            };
+            _cardsListView.unbindItem = (element, index) =>
+            {
+                if (element is DailyRewardCardControl cardControl)
+                {
+                    cardControl.OnClaimEvent -= OnClaimRewardHandler;
+                }
+            };
+
+            // Setup data binding for itemsSource
+            _cardsListView.dataSource = _viewModel;
+            _cardsListView.SetBinding("itemsSource", new DataBinding() { dataSourcePath = new PropertyPath(nameof(DailyRewardsViewModel.Cards)) });
 
             _rerollInfoText = _root.Q<Label>(UISelectors.DailyRewardsScreen.REROLL_INFO_TEXT);
             if (_rerollInfoText == null)
@@ -74,7 +98,11 @@ namespace Scripts.UI.GameScreens
             }
 
             _rerollButton = _root.Q<RewardsRerollButton>(UISelectors.DailyRewardsScreen.REROLL_BUTTON);
-            if (_rerollButton == null)
+            if (_rerollButton != null)
+            {
+                _rerollButton.OnRerollClickedEvent += OnRerollClickedHandler;
+            }
+            else
             {
                 Debug.LogWarning($"{nameof(DailyRewardsScreen)}: RerollButton element not found.");
             }
@@ -83,15 +111,6 @@ namespace Scripts.UI.GameScreens
             if (_viewModel != null)
             {
                 UpdateUIFromViewModel();
-            }
-
-            if (_rerollButton != null)
-            {
-                _rerollButton.OnRerollClickedEvent += OnRerollClickedHandler;
-            }
-            else
-            {
-                Debug.LogWarning($"{nameof(DailyRewardsScreen)}: RerollButton is null. Cannot subscribe to click event.");
             }
 
             _rerollInfoText.SetBinding("text", new MultiDependencyBinding
@@ -193,18 +212,8 @@ namespace Scripts.UI.GameScreens
                 _currencyDisplay.ClearBinding("gems");
             }
 
-            // Clear cards
-            if (_cardsRow != null)
-            {
-                foreach (var child in _cardsRow.Children())
-                {
-                    if (child is DailyRewardCardControl cardControl)
-                    {
-                        cardControl.OnClaimEvent -= OnClaimRewardHandler;
-                    }
-                }
-                _cardsRow.Clear();
-            }
+            // Dispose SimpleListView
+            _cardsListView?.Dispose();
         }
 
         /// <summary>
@@ -224,62 +233,6 @@ namespace Scripts.UI.GameScreens
                 return;
             }
             _rerollButton.SetEnabled(_viewModel.RerollCount < _viewModel.MaxRerolls);
-            PopulateCards();
-        }
-
-        /// <summary>
-        /// Populates or updates the daily reward cards based on the ViewModel's data.
-        /// Subscribes to the OnClaim event for each card.
-        /// Logs warnings if the cards row or ViewModel is missing.
-        /// </summary>
-        private void PopulateCards()
-        {
-            if (_cardsRow == null)
-            {
-                Debug.LogWarning($"{nameof(DailyRewardsScreen)}: Cannot populate cards, CardsRow element is null.");
-                return;
-            }
-            if (_viewModel == null)
-            {
-                Debug.LogWarning($"{nameof(DailyRewardsScreen)}: Cannot populate cards, ViewModel is null.");
-                _cardsRow.Clear(); // Clear cards if ViewModel is null
-                return;
-            }
-
-            var cards = _viewModel.Cards;
-
-            // Ensure we have enough card controls or remove excess
-            while (_cardsRow.childCount < cards.Count)
-            {
-                DailyRewardCardControl newCardControl = new DailyRewardCardControl();
-                _cardsRow.Add(newCardControl);
-                newCardControl.OnClaimEvent += OnClaimRewardHandler; // Subscribe to claim event
-            }
-            while (_cardsRow.childCount > cards.Count)
-            {
-                int lastIndex = _cardsRow.childCount - 1;
-                DailyRewardCardControl cardControlToRemove = _cardsRow[lastIndex] as DailyRewardCardControl;
-                if (cardControlToRemove != null)
-                {
-                    cardControlToRemove.OnClaimEvent -= OnClaimRewardHandler; // Unsubscribe
-                }
-                _cardsRow.RemoveAt(lastIndex);
-            }
-
-            // Update existing card controls with new data
-            for (int i = 0; i < cards.Count; i++)
-            {
-                DailyRewardCardControl cardControl = _cardsRow[i] as DailyRewardCardControl;
-                if (cardControl != null)
-                {
-                    var cardData = cards[i];
-                    cardControl.SetData(cardData);
-                }
-                else
-                {
-                    Debug.LogError($"{nameof(DailyRewardsScreen)}: Child element at index {i} is not a DailyRewardCardControl.");
-                }
-            }
         }
 
         /// <summary>

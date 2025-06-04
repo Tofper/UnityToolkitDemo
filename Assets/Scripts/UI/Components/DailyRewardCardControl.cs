@@ -189,14 +189,6 @@ namespace Scripts.UI.Components
         public void SetData(CardData cardData)
         {
             dataSource = _cardData = cardData;
-
-            if (!_initialized)
-            {
-                Debug.Log($"[{nameof(DailyRewardCardControl)}] Initializing card for day {_cardData.day}");
-                // Initial reveal animation
-                Reveal(_cardData.day); // Pass day for staggered animation
-                _initialized = true;
-            }
         }
 
         private void SetupRewardUpdateCallback()
@@ -209,7 +201,15 @@ namespace Scripts.UI.Components
             {
                 if (_initialized)
                 {
+                    Debug.Log($"[{nameof(DailyRewardCardControl)}] Reward updated for day {_cardData.day}");
                     PlayRerollAnimation();
+                }
+                else
+                {
+                    Debug.Log($"[{nameof(DailyRewardCardControl)}] Initializing card for day {_cardData.day}");
+                    // Initial reveal animation
+                    Reveal(_cardData.day); // Pass day for staggered animation
+                    _initialized = true;
                 }
             });
             SetBinding(BINDING_CALLBACK_REWARD_CHANGE, rewardUpdateBinding);
@@ -217,7 +217,6 @@ namespace Scripts.UI.Components
 
         private void SetupBindings()
         {
-
             SetupDayTextBindings();
             SetupRewardUpdateCallback();
             SetupRewardGradientBindings();
