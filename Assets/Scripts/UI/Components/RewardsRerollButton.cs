@@ -17,7 +17,9 @@ namespace Scripts.UI.Components
     public partial class RewardsRerollButton : Button
     {
         // Animation Constants
-        private const float DEFAULT_ANIMATION_DURATION = 0.9f;
+        private const float DEFAULT_ANIMATION_DURATION = 0.1f;
+        private const int TARGET_FPS = 60;
+        private const int FRAME_INTERVAL_MS = 1000 / TARGET_FPS; // ~16.67ms per frame
         // Resource Paths
         private const string RESOURCE_PATH = "RewardsRerollButton";
 
@@ -115,9 +117,12 @@ namespace Scripts.UI.Components
                 return;
             }
 
+            Debug.Log($"{nameof(RewardsRerollButton)}: State changing from {_currentState} to {newState}");
+
             // Remove old state classes
             RemoveFromClassList(UISelectors.RewardsRerollButton.PRESSED_CLASS);
             RemoveFromClassList(UISelectors.RewardsRerollButton.HOVERED_CLASS);
+
             // Add new state classes if applicable
             if (newState == EButtonState.Pressed)
             {
@@ -129,10 +134,30 @@ namespace Scripts.UI.Components
                 AddToClassList(UISelectors.RewardsRerollButton.HOVERED_CLASS);
             }
 
-            // Handle enabled/disabled state
-            SetEnabled(newState is not EButtonState.Disabled and not EButtonState.Animating);
+            // Set picking mode based on state
+            pickingMode = newState is EButtonState.Disabled or EButtonState.Animating
+                ? PickingMode.Ignore
+                : PickingMode.Position;
 
             _currentState = newState;
+        }
+
+        /// <summary>
+        /// Sets whether the button is enabled or disabled.
+        /// </summary>
+        public new void SetEnabled(bool enabled)
+        {
+            Debug.Log($"{nameof(RewardsRerollButton)}: SetEnabled called with {enabled}, current state: {_currentState}");
+            base.SetEnabled(enabled);
+
+            if (enabled && _currentState != EButtonState.Animating)
+            {
+                SetState(EButtonState.Normal);
+            }
+            else if (!enabled)
+            {
+                SetState(EButtonState.Disabled);
+            }
         }
 
         /// <summary>
@@ -144,8 +169,8 @@ namespace Scripts.UI.Components
             RegisterCallback<PointerUpEvent>(OnPointerUp);
             RegisterCallback<PointerOverEvent>(OnPointerOver);
             RegisterCallback<PointerOutEvent>(OnPointerOut);
-            clicked += InternalRerollClicked;
             RegisterCallback<DetachFromPanelEvent>(OnDetachFromPanel);
+            clicked += InternalRerollClicked;
         }
 
         /// <summary>
@@ -154,10 +179,8 @@ namespace Scripts.UI.Components
         /// <param name="e">The detach event data.</param>
         private void OnDetachFromPanel(DetachFromPanelEvent e)
         {
+            StopDiceAnimation();
             UnregisterCallbacks();
-            // Stop animation if running
-            _animationItem?.Pause(); // Pause also cancels if not started
-            _animationItem = null;
         }
 
         /// <summary>
@@ -183,12 +206,16 @@ namespace Scripts.UI.Components
 
         private void InternalRerollClicked()
         {
+            Debug.Log($"{nameof(RewardsRerollButton)}: Reroll clicked, current state: {_currentState}, enabled: {enabledSelf}");
             // Check if currently animating or disabled before allowing click logic
-            if (_currentState is not EButtonState.Animating and not EButtonState.Disabled)
+            if (_currentState is EButtonState.Animating or EButtonState.Disabled)
             {
-                OnRerollClicked();
-                StartDiceAnimation();
+                Debug.Log($"{nameof(RewardsRerollButton)}: Ignoring click - button is {_currentState}");
+                return;
             }
+
+            OnRerollClicked();
+            StartDiceAnimation();
         }
 
         /// <summary>
@@ -197,7 +224,11 @@ namespace Scripts.UI.Components
         /// <param name="evt">The pointer down event data.</param>
         private void OnPointerDownRoll(PointerDownEvent evt)
         {
-            SetState(EButtonState.Pressed);
+            // Only change to pressed state if not disabled or animating
+            if (_currentState is not (EButtonState.Disabled or EButtonState.Animating))
+            {
+                SetState(EButtonState.Pressed);
+            }
         }
 
         /// <summary>
@@ -206,31 +237,15 @@ namespace Scripts.UI.Components
         /// <param name="evt">The pointer up event data.</param>
         private void OnPointerUp(PointerUpEvent evt)
         {
-            // Change state back based on whether pointer is still over the element
-            if (this.HasPointerCapture(evt.pointerId))
+            // Don't change state if disabled or animating
+            if (_currentState is EButtonState.Disabled or EButtonState.Animating)
             {
-                if (ContainsPoint(evt.localPosition))
-                {
-                    SetState(_currentState == EButtonState.Animating ? EButtonState.Animating : EButtonState.Hovered);
-                }
-                else
-                {
-                    SetState(_currentState == EButtonState.Animating ? EButtonState.Animating : EButtonState.Normal);
-                }
+                return;
             }
-            else
-            {
-                // Pointer is no longer captured, meaning it was released outside.
-                // Check if pointer is currently over the element to determine state.
-                if (ContainsPoint(evt.localPosition))
-                {
-                    SetState(_currentState == EButtonState.Animating ? EButtonState.Animating : EButtonState.Hovered);
-                }
-                else
-                {
-                    SetState(_currentState == EButtonState.Animating ? EButtonState.Animating : EButtonState.Normal);
-                }
-            }
+
+            // Simple state transition: if pointer is over element, go to hovered, otherwise normal
+            bool isPointerOver = ContainsPoint(evt.localPosition);
+            SetState(isPointerOver ? EButtonState.Hovered : EButtonState.Normal);
         }
 
         /// <summary>
@@ -239,12 +254,8 @@ namespace Scripts.UI.Components
         /// <param name="evt">The pointer over event data.</param>
         private void OnPointerOver(PointerOverEvent evt)
         {
-            if (!enabledSelf)
-            {
-                return;
-            }
-            // Only transition to Hovered if not currently Pressed or Animating
-            if (_currentState is not EButtonState.Pressed and not EButtonState.Animating and not EButtonState.Disabled)
+            // Only transition to Hovered if in Normal state
+            if (_currentState == EButtonState.Normal)
             {
                 SetState(EButtonState.Hovered);
             }
@@ -256,10 +267,6 @@ namespace Scripts.UI.Components
         /// <param name="evt">The pointer out event data.</param>
         private void OnPointerOut(PointerOutEvent evt)
         {
-            if (!enabledSelf)
-            {
-                return;
-            }
             // Only transition to Normal if currently Hovered
             if (_currentState == EButtonState.Hovered)
             {
@@ -278,22 +285,23 @@ namespace Scripts.UI.Components
                 return;
             }
 
+            Debug.Log($"{nameof(RewardsRerollButton)}: Starting animation, current state: {_currentState}");
             _isAnimating = true;
             SetState(EButtonState.Animating);
             _animationElapsed = 0f;
-            // (time, position.xy, rotation.z, scale.xy)
+            // (normalizedTime, position.xy, rotation.z, scale.xy)
             var frames = new[]
             {
-                (0f,      new Vector2(0, 0),    0f,   1f),
-                (0.072f,  new Vector2(8, -5),  40f,  1.10f),
-                (0.144f,  new Vector2(14, -8), 80f,  1.13f),
-                (0.216f,  new Vector2(20, -4), 120f, 1.15f),
-                (0.288f,  new Vector2(14, 0),  160f, 1.13f),
-                (0.432f,  new Vector2(11, -2), 110f, 1.09f),
-                (0.576f,  new Vector2(7, 0),   70f,  1.04f),
-                (0.72f,   new Vector2(2, -2), 30f,  1.01f),
-                (0.792f,  new Vector2(0, 0),  15f,  1.00f),
-                (0.9f,    new Vector2(0, 0),  0f,   1f)
+                (0.0f,    new Vector2(0, 0),    0f,   1f),
+                (0.08f,   new Vector2(8, -5),  40f,  1.10f),
+                (0.16f,   new Vector2(14, -8), 80f,  1.13f),
+                (0.24f,   new Vector2(20, -4), 120f, 1.15f),
+                (0.32f,   new Vector2(14, 0),  160f, 1.13f),
+                (0.48f,   new Vector2(11, -2), 110f, 1.09f),
+                (0.64f,   new Vector2(7, 0),   70f,  1.04f),
+                (0.80f,   new Vector2(2, -2), 30f,  1.01f),
+                (0.88f,   new Vector2(0, 0),  15f,  1.00f),
+                (1.0f,    new Vector2(0, 0),  0f,   1f)
             };
             int frameIndex = 0;
 
@@ -305,15 +313,17 @@ namespace Scripts.UI.Components
             _animationItem = schedule.Execute(() =>
             {
                 _animationElapsed += Time.deltaTime;
+                float normalizedTime = _animationElapsed / AnimationDuration;
+
                 // Find the two frames to interpolate between
-                while (frameIndex < frames.Length - 1 && _animationElapsed > frames[frameIndex + 1].Item1)
+                while (frameIndex < frames.Length - 1 && normalizedTime > frames[frameIndex + 1].Item1)
                 {
                     frameIndex++;
                 }
 
                 var (t0, pos0, rot0, scale0) = frames[frameIndex];
                 var (t1, pos1, rot1, scale1) = frameIndex < frames.Length - 1 ? frames[frameIndex + 1] : frames[frameIndex];
-                float segmentProgress = (_animationElapsed - t0) / (t1 - t0);
+                float segmentProgress = (normalizedTime - t0) / (t1 - t0);
 
                 // Interpolate transform properties
                 if (_diceWrapper != null)
@@ -325,14 +335,13 @@ namespace Scripts.UI.Components
                 }
 
                 // Check for animation completion
-                if (_animationElapsed >= AnimationDuration)
+                if (normalizedTime >= 1f)
                 {
                     StopDiceAnimation();
                     // Transition back to Normal or Hovered state after animation
                     SetState(EButtonState.Normal);
                 }
-            }).StartingIn(0).Every((long)(Time.deltaTime * 1000)).Until(() => !_isAnimating);
-            // Animation is stopped explicitly by StopDiceAnimation
+            }).StartingIn(0).Every(FRAME_INTERVAL_MS).Until(() => !_isAnimating);
         }
 
         /// <summary>
@@ -341,9 +350,11 @@ namespace Scripts.UI.Components
         /// </summary>
         private void StopDiceAnimation()
         {
+            Debug.Log($"{nameof(RewardsRerollButton)}: Stopping animation, current state: {_currentState}, enabled: {enabledSelf}");
             _isAnimating = false;
             _animationItem?.Pause();
             _animationItem = null;
+            _animationElapsed = 0f;
 
             // Ensure final state is applied (reset transform)
             if (_diceWrapper != null)
@@ -355,6 +366,16 @@ namespace Scripts.UI.Components
             else
             {
                 Debug.LogWarning($"{nameof(RewardsRerollButton)}: Cannot reset dice wrapper transform, element not found.");
+            }
+
+            // Return to normal state after animation completes
+            if (enabledSelf)
+            {
+                SetState(EButtonState.Normal);
+            }
+            else
+            {
+                SetState(EButtonState.Disabled);
             }
         }
     }

@@ -223,6 +223,7 @@ namespace Scripts.UI.GameScreens
                 Debug.LogWarning($"{nameof(DailyRewardsScreen)}: UpdateUIFromViewModel called with null ViewModel.");
                 return;
             }
+            _rerollButton.SetEnabled(_viewModel.RerollCount < _viewModel.MaxRerolls);
             PopulateCards();
         }
 

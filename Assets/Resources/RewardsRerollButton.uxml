@@ -4,7 +4,7 @@
         <ui:VisualElement name="DiceWrapper" class="rewards-reroll__dice-wrapper">
             <ui:Label name="DiceIcon" text="🎲" emoji-fallback-support="false" class="rewards-reroll__dice-icon" />
         </ui:VisualElement>
-        <ui:Label text="FRED" name="Label" class="rewards-reroll__label">
+        <ui:Label text="reroll" name="Label" class="rewards-reroll__label">
             <Bindings>
                 <UnityEngine.Localization.LocalizedString property="text" table="GUID:3057408180711984a9b18dd8d7029bfb" entry="Id(2306100338688)" />
             </Bindings>
